@@ -1,0 +1,25 @@
+{
+  // DEZ final boss chunks for 240px screen height
+  "DEZFinalBossChunks": {
+    "File": "DEZFinalBossChunks.bin",
+    "RomInject": "0x2d1800"
+  },
+
+  // LRZ2 final boss chunks for 240px screen height
+  "LRZ2BossChunks": {
+    "File": "LRZ2BossChunks.bin",
+    "RomInject": "0x2d1e58"
+  },
+
+  // DEZ final boss blocks for 240px screen height
+  "DEZFinalBossBlocks": {
+    "File": "DEZFinalBossBlocks.bin",
+    "RomInject": "0x2d266e"
+  },
+
+  // Ring art separated from HUD text art
+  "RingArtNoHUDText": {
+    "File": "RingArtNoHUDText.bin",
+    "RomInject": "0x192aee"
+  }
+}

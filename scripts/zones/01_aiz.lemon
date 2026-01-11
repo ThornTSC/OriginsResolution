@@ -1,0 +1,1138 @@
+// Adjust camera position when Knuckles starts AIZ1 based on screen height
+// as well as screen position after exiting the hollow tree
+//# address-hook(0x01c550) end(0x01c5c4)
+function void fn01c550()
+{
+	A1 = 0x01c60a
+	fn01caae()
+
+	level.vertical_wrap = 0
+	u16[0xfffffcde] = 0x20e
+	if ((global.game_mode & 0x80) == 0 && global.fade_timer == 0)
+	{
+		u16[0xfffffc5e] = 0x020e
+	}
+
+	if (camera.position.x.u16 >= 0x2b00)
+	{
+		u16[0xfffffc5e] = 0x0004
+	}
+	if (camera.position.x.u16 >= 0x2c00)
+	{
+		level.vertical_wrap = 0x2e0 - getScreenHeightExtend()/2
+	}
+	if (camera.position.x.u16 >= 0x2d80)
+	{
+		u16[0xfffffc5e] = isMainCharacter(CHARACTER_KNUCKLES) ? u16[0x04faea] : 0x0c02
+		move_area.left = 0x2d80
+		requestLoadingPatterns(0x5a)		// Boss sprites
+		camera.update_routine += 2
+	}
+
+#if STANDALONE
+	// Handling for Knuckles' new path
+	u16 playerPosX = u16[0xffffb000 + 0x10]
+	u16 playerPosY = u16[0xffffb000 + 0x14]
+	if (playerPosX >= 0x1680 && playerPosX < 0x1a00)	// Including a fix #contributed by Thorn
+	{
+		if (playerPosY < 0x0180)
+		{
+			move_area.left = 0x1680
+			move_area.bottom.target = (playerPosX < 0x1960) ? 0x0090 - getScreenHeightExtend() : 0x0390 // - getScreenHeightExtend() if we shift the initial lowest camera boundary
+			move_area.bottom.current = move_area.bottom.target
+		}
+		else
+		{
+			move_area.left = 0x13a8
+		}
+	}
+#endif
+}
+
+// Adjust camera position in Knuckles's intro based on screen height
+//# address-hook(0x0634ca) end(0x063524)
+function void fn0634ca()
+{
+	if (SetupObjectAttributesSlotted(0x0663de))
+		return
+
+	objA0.countdown_value = 0xef
+	u8[0xffffb000 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_ANIMATION | control_flag.DISABLE_UPDATE)
+
+#if STANDALONE
+	Game.startSkippableCutscene()
+
+	if (global.zone_act == 0x0000)
+	{
+		if (Game.getSetting(SETTING_LEVELLAYOUTS) == 2)
+		{
+			objA0.position.x.u16 = 0x17e1
+			objA0.position.y.u16 = 0x0125
+
+			camera.position.x.u16 = 0x1768
+			camera.position.y.u16 = 0x0090 - getScreenHeightExtend()
+		}
+		else
+		{
+			objA0.position.x.u16 = 0x13f0
+			objA0.position.y.u16 = 0x0425
+
+			camera.position.x.u16 = 0x1390
+			camera.position.y.u16 = 0x0380 + getScreenHeightExtend()	// + here, as we allow seeing a bit more into the floor at the Sonic/Tails start area
+		}
+	}
+	else
+#endif
+	{
+		camera.position.x.u16 = max(0x0540, 0x0560 - getScreenExtend())
+		camera.position.y.u16 = 0x0948
+	}
+	player1.camera_lock = 0xff
+	global.random.seed = global.framecounter
+	global.level_started = 0
+
+	if (allocDynamicObjectStd())
+	{
+		// Spawn check for cutscene skip
+		objA1.update_address = 0x063682
+	}
+
+	// "spawnSimpleChildObjects(0x066656)" replaced by:
+	spawnSimpleChildObjects(0x063694, 8)		// Spawn the 8 critters
+
+	copyMemory(0xfffffca0, 0x066a32, 0x20)
+}
+
+// Adjust a hardcoded screen height check to consider the actual screen height
+//# address-hook(0x23b0d4) end(0x23b14e)
+function void UpdateForegroundScrolling.AIZ1()
+{
+	A4 = 0x23b258
+	A5 = 0xffffa808
+	D1.u16 = water.height.current - camera.foreground.y.u16
+	if (D1.s16 >= getScreenHeight())
+	{
+		fn239e8c()
+	}
+	else
+	{
+		--D1.u16
+		fn239e90()
+
+		u32 backupA1 = A1
+		A1 = 0xffffa840
+		A6 = 0x23a170
+		D0.u16 = water.height.current
+		D1.u16 = getScreenHeight() - 2 - D1.u16			// formerly 0xde - D1.u16 = screen height - 2
+		D2.u16 = (level.framecounter + D0.u16 * 2) & 0x7e
+		A6 += D2.u16
+		D6.s16 = -s16(camera.foreground.x.u16)
+		fn239e74()
+
+		A1 = backupA1
+		A2 = 0xffffa840
+		A4 = 0x23b258
+		A5 = 0xffffa808
+		A6 = 0x23a3b0
+		D0.u16 = water.height.current - camera.foreground.y.u16 + camera.background.y.u16
+		D2.u16 = ((level.framecounter >> 1) + D0.u16 * 2) & 0x7e
+		A6 += D2.u16
+		fn239f18()
+	}
+}
+
+// Adjust a hardcoded screen height check to consider the actual screen height
+//# address-hook(0x239e8c) end(0x239e8c)
+function void fn239e8c()
+{
+	D1.u16 = getScreenHeight() - 1	// formerly 0xdf = screen height - 1
+	fn239e90()
+}
+
+// Force proper drawing to the right of the hollow tree now that the camera is positioned slightly higher
+//# address-hook(0x04f912) end(0x04fa0a)
+function void UpdateLevelTiles.AIZ1()
+{
+	LoadTileContentDefault()
+
+	if (camera.position.x.u16 >= 0x2d00 - getScreenWidth()/2)
+		fillPlaneA_Default(max(camera.foreground.x.u16, 0x2d80), camera.foreground.y.u16, getScreenWidth(), getScreenHeight())
+	
+	D0.u16 = u16[0xffffeec4]
+	if (D0.u16 == 0)
+		return
+
+	// Handling of the hollow tree
+	if (camera.position.x.u16 < 0x2d30 && D0.u16 < 0x39)
+	{
+		if (D0.u16 >= 0x34)
+		{
+			fn04f912_internal(0x04)
+		}
+		if (D0.u16 >= 0x24)
+		{
+			fn04f912_internal(0x08)
+		}
+		if (D0.u16 >= 0x14)
+		{
+			fn04f912_internal(0x0c)
+		}
+
+		A6 = (D0 & 0x01) ? 0x23ac4a : 0x23ac5a
+
+		D0.u16 = (D0.u16 - 1) >> 1
+		level.display_routine = min(D0.u16, 2)
+		D0.s16 = 0x0470 - (D0.s16 << 4)
+
+		while (true)
+		{
+			if (D0.u16 < camera.foreground.y.old)
+			{
+				A6 += 0x20
+				D0.u16 += 0x10
+
+				--level.display_routine
+				if (level.display_routine & 0x80)
+					break
+			}
+			else
+			{
+				D1.u16 = 0x2c80		// Tree left side's x-position
+				D6 = 0x10
+
+				u32 backupA0 = A0
+				LoadTileContentSingleLine()
+				A0 = backupA0
+
+				D0.u16 -= 0x280
+				D1 = 0
+				D6 = 0x0f
+				fn23ab96()
+
+				A6 += 0x10
+				D0.u16 += 0x290
+
+				--level.display_routine
+				if (level.display_routine & 0x80)
+					return
+			}
+		}
+	}
+
+	u16[0xffffeec4] = 0
+	fn04f912_internal(0x00)
+	fn04f912_internal(0x04)
+	fn04f912_internal(0x08)
+	fn04f912_internal(0x0c)
+}
+
+// Set lower screen boundary for hollow tree and following cutscene based on screen height
+//# address-hook(0x01caae) end(0x01caca)
+function void fn01caae()
+{
+	D0.u16 = camera.position.x.u16 + getScreenExtend()
+	while (true)
+	{
+		D1 = u32[(A1+=4)-4]
+		if (D0.u16 <= D1.u16)
+		{
+		#if STANDALONE
+			// Additional check for the area at the first Giant Ring
+			//  -> Required for extended camera
+			if (A1 == 0x01c612 && u16[0xffffb000 + 0x10] >= 0x1b80)
+				continue
+		#endif
+			break
+		}
+	}
+	D1 = (D1 << 16) + (D1 >> 16)
+	if (D1.s16 < 0)
+	{
+		D1.u16 &= 0x7fff
+		move_area.bottom.current = D1.u16
+	}
+	move_area.bottom.target = D1.u16
+
+	if (camera.position.x.u16 >= 0x2ad0)	// hollow tree and beyond
+	{
+		move_area.bottom.current -= getScreenHeightExtend()/2
+		move_area.bottom.target -= getScreenHeightExtend()/2
+	}
+}
+
+// If the screen height is extended, remove fire wall art from VRAM, as we use images instead
+//# address-hook(0x01c5c6) end(0x01c600)
+function void fn01c5c6()
+{
+	A1 = 0x01c60a
+	fn01caae()
+	move_area.left = camera.position.x.u16
+	if (camera.position.x.u16 >= 0x2e00 && kosinski.waiting_modules == 0)
+	{
+		if (getScreenHeightExtend() <= 0)
+			Kosinski.addToDMAQueue(0x3af5d0, 0xa000)
+		else
+		{
+			VDP.setupVRAMWrite(0xa000)
+			VDP.zeroVRAM(0xaf20 - 0xa000)
+		}
+		requestLoadingPatterns(0x0c)		// AIZ2 object sprites
+		camera.update_routine += 2
+	}
+}
+
+// Use images for the fire wall if the screen height is extended
+//# address-hook(0x04fb48) end(0x04fb4c)
+function void UpdateLevelScrolling.AIZ1a()
+{
+	base.UpdateLevelScrolling.AIZ1a()
+
+	if (u32[0xfffffc6a] == 0x02ee0aee && getScreenHeightExtend() > 0)	// part of fire wall palette
+	{
+		AIZ.DrawFireWallImage()
+	}
+}
+
+// Use images for the fire wall if the screen height is extended and check a
+// timer set when the blimp spawns to see if the screen should be redrawn.
+// While this redraw is occurring, fake it as best as we can with an image.
+// Not the best solution, but we do what we can.
+//# address-hook(0x0500b6) end(0x0500ce)
+function void UpdateLevelScrolling.AIZ2()
+{
+	base.UpdateLevelScrolling.AIZ2()
+
+	if (u32[0xfffffc6a] == 0x02ee0aee && getScreenHeightExtend() > 0)	// part of fire wall palette
+	{
+		AIZ.DrawFireWallImage()
+	}
+	if (getScreenHeightExtend() > 0)	// && unused.teleport_timer > 0)
+	{
+		if (camera.position.x.u16 > 0x3f00 && camera.position.x.u16 < 0x4600)
+			Renderer.drawCustomSprite("aiz2_autoscrollterrainpatch", 0x4120, 0x0230, 0x00, SPRITE_FLAG_WORLDSPACE, 0x1fff)
+		if (!global.game.paused && unused.teleport_timer > 0)
+		{
+			fillPlaneA_Default(camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth(), getScreenHeight())
+			++unused.teleport_timer
+			if (unused.teleport_timer >= 5)
+				unused.teleport_timer = 0
+		}
+	}
+}
+
+function void AIZ.DrawFireWallImage()
+{
+	u16 fireWallProgressOffset = (global.act == 0 || (level.display_routine != 0x0068 && camera.background.y.u16 >= 0x01c0)) ? 0x10 : 0x50
+	for (u16 column = 0; column <= getScreenWidth()/16 + 8; ++column)
+	{
+		Renderer.drawCustomSprite(stringformat("aiz_firewall_%x", column & 0x07), (column * 0x10) - (camera.background.x.u16 - 0x1000), getScreenHeight() + fireWallProgressOffset - u16[0xffffeeec + ((column * 4) & 0x1f)], 0x00, SPRITE_FLAG_PRIO, 0xdffe)
+	}
+}
+
+// Set the initial AIZ2 camera boundaries based on screen height
+//# address-hook(0x04fd62)
+function void fn04fd62()
+{
+	if (kosinski.waiting_modules == 0)
+	{
+		// Go to second part of act 1
+		//  -> Technically, this is part of act 2 already
+		global.zone_act = 0x0001
+		camera.update_routine = 0
+		dynobjects.routine = 0
+		rings.update_routine = 0
+		level.boss_encounter = 0
+		global.in_extra_stage = 0
+		fn04f8f8()
+
+		push(A3)
+		push(A2)
+		push(A0)
+		push(D7)
+
+		fn01c362()
+		fn0076a6()
+		Level.InitializeWater()
+		Level.loadPaletteData(0x0b)		// AIZ 2 level palette
+
+		D7 = pop()
+		A0 = pop()
+		A2 = pop()
+		A3 = pop()
+
+		AIZ2.LevelInitSpecialty()
+
+		A1 = 0xfffffc62
+		u32[A1]   = 0x004e006e
+		u32[A1+4] = 0x00ae00ce
+		u32[A1+8] = 0x02ee0aee
+
+		D0.u16 = 0x2f00
+		D1.u16 = 0x80
+		u16[0xffffb000 + 0x10] -= D0.u16
+		u16[0xffffb000 + 0x14] -= D1.u16
+		u16[0xffffb04a + 0x10] -= D0.u16
+		u16[0xffffb04a + 0x14] -= D1.u16
+		fn04f3a0()
+
+		camera.position.x.u16 -= D0.u16
+		camera.position.y.u16 -= D1.u16
+		camera.foreground.x.u16 -= D0.u16
+		camera.foreground.y.u16 -= D1.u16
+		move_area.left = 0x10
+		move_area.right = 0x10 + getScreenExtend() * 2
+		u32[0xffffee18] = 0x0260
+		move_area.bottom.target = 0x0260 - getScreenHeightExtend()/2
+		u16[0xffffeeb4] = camera.foreground.x.u16
+		u16[0xffffeeb6] = camera.foreground.x.u16
+		Level.GetCameraPosition()
+
+		u16[0xffffeec8] = (D0.u16 + getScreenHeight()) & level.height.tilemask
+		u16[0xffffeeca] = 0x0f
+		level.scrolling_routine = 0
+
+	#if STANDALONE
+		// There's a glitch here that is both hard to reproduce and tricky to solve.
+		// You have to jump at the start of the fire wall moving and land right when the chunks gets exchanged.
+		// There are a few frames between the change of chunk contents and the loading of the chunk layouts (the latter happens right above).
+		// If you're falling down fast enough, you can basically glitch through the temporarily messed up collision.
+		// As a workaround, just check if the main character glitched through, and reposition him.
+		if (u16[0xffffb000 + 0x14] > 0x02fc)
+		{
+			u16[0xffffb000 + 0x14] = 0x02fc
+			u16[0xffffb000 + 0x1a] = 0
+		}
+	#endif
+	}
+
+	fn23b17a()
+	WriteScrollOffsets()
+}
+
+// Replace hardcoded screen heights for burning AIZ1/AIZ2 foreground/background
+// scrolling and water ripple code with flexible ones.
+//# address-hook(0x23b680) end(0x23b772)
+function void fn23b680()
+{
+	A1 = 0xffffa800
+	A6 = 0x23bc5a
+	D0.u16 = camera.foreground.y.u16
+	D1.u16 = getScreenHeight() - 1	// formerly 0xdf = screen height - 1
+	D2.u16 = level.framecounter + D0.u16 * 2
+	D3 = 0x3e
+	D6.s16 = -s16(camera.foreground.x.u16)
+	if (water.height.current > D0.u16)
+	{
+		D4.u16 = water.height.current - D0.u16
+		if (D4.u16 <= D1.u16)
+		{
+			D1.u16 = D4.u16 - 1
+			D2.u16 &= D3.u16
+			A6.u16 += D2.u16
+			fn239e74()
+
+			D0.u16 = water.height.current
+			D1.u16 = getScreenHeight() - 2 - D1.u16			// formerly 0xde - D1.u16 = screen height - 2 - D1.u16
+			D2.u16 = level.framecounter + D0.u16 * 2
+			A6 = 0x23a170
+			D3 = 0x7e
+		}
+	}
+	else
+	{
+		D4.u16 = water.height.current - D0.u16	// Still needed?
+		A6 = 0x23a170
+		D3 = 0x7e
+	}
+
+	D2.u16 &= D3.u16
+	A6.u16 += D2.u16
+	fn239e74()
+
+	A1 = 0xffffe000		// Location of linewise scroll offsets
+	A2 = 0xffffa800
+	A4 = 0x23bc06
+	A5 = 0xffffa9c0 + (2 * getScreenHeightExtend())
+	A6 = 0x23be5a
+	D0.u16 = camera.background.y.u16
+	D1.u16 = getScreenHeight() - 1	// formerly 0xdf = screen height - 1
+	D2.s16 = s16(level.framecounter) >> 1
+	D2.u16 += D0.u16 * 2
+	D3 = 0x3e
+	if (water.height.current > camera.foreground.y.u16)
+	{
+		D4.u16 = water.height.current - camera.foreground.y.u16
+		if (D4.u16 <= D1.u16)
+		{
+			D1.u16 = D4.u16 - 1
+			D2.u16 &= D3.u16
+			A6.u16 += D2.u16
+			fn239f18()
+
+			A4 = 0x23bc06
+			A5 = 0xffffa9c0 + (2 * getScreenHeightExtend())
+			D0.u16 = water.height.current - camera.foreground.y.u16 + camera.background.y.u16
+			D1.u16 = getScreenHeight() - 2 - D1.u16			// formerly 0xde - D1.u16 = screen height - 2 - D1.u16
+			D2.u16 = s16(level.framecounter) >> 1
+			D2.u16 += D0.u16 * 2
+			A6 = 0x23a3b0
+			D3 = 0x7e
+		}
+	}
+	else
+	{
+		D4.u16 = water.height.current - camera.foreground.y.u16	// Still needed?
+		A6 = 0x23a3b0
+		D3 = 0x7e
+	}
+
+	D2.u16 &= D3.u16
+	A6.u16 += D2.u16
+	fn239f18()
+
+	if (u16[0xffffeed6] != 0)
+	{
+		A1 = 0xffffe000		// Location of linewise scroll offsets
+		D0.s16 = -s16[0xffffee98]
+		for (u8 i = 0; i < 0x40; ++i)
+		{
+			u16[A1] = D0.u16
+			A1 += 4
+		}
+	}
+}
+
+//# address-hook(0x23b626) end(0x23b67e)
+function void fn23b626()
+{
+	D0.s16 = s16(camera.foreground.y.u16 - camera.screenshake.offset) >> 1
+	camera.background.y.u16 = camera.screenshake.offset + D0.s16
+	if (level.scrolling_routine >= 0x10)
+	{
+		camera.background.y.u16 += u16[0xffffeee8]
+	}
+	D0 = s32(u32(u16[0xffffeeb6]) << 16) >> 1
+	D1 = (D0.s32 >> 5) * 3
+
+	A1 = 0xffffa9c0 + (2 * getScreenHeightExtend())
+	A5 = 0x23bc38
+	while (true)
+	{
+		D3.u8 = u8[A5]
+		++A5
+		if (D3.s8 < 0)
+			break
+
+		for (s16 i = 0; i <= D3.s8; ++i)
+		{
+			D2 = u8[A5]
+			++A5
+			u16[A1 + D2.u16] = D0 >> 16
+		}
+		D0 += D1
+	}
+}
+
+// Prevent AIZ heat wave and water ripple offset application from going out of the
+// data's bounds by returning to a previous iteration when necessary.
+//# address-hook(0x239e74) end(0x239e8a)
+function void fn239e74()
+{
+	for (u16 i = 0; i <= D1.u16; ++i)
+	{
+		if (i == 0x40)			// the heat/ripple data repeats every 0x80 bytes,
+			A6 -= (0x40 * 2)	// and A6, the offset pointer, advances by 2 each repeat.
+		u16[A1] = u16[A6] + D6.u16
+		A1 += 2
+		A6 += 2
+	}
+}
+
+// Despite Euka's comment, this function is used for all linewise scroll offsets in burning AIZ1/AIZ2.
+// As with the heat/ripple data, data here repeats every 0x80 bytes.
+// When we reach the scroll offset at 0xffffe380, beyond what 224px screen height needs, adjust the pointer
+// to not go beyond the data's end.
+//# address-hook(0x239f18) end(0x239fb2)
+function void fn239f18()
+{
+	// This function sets line offsets in water in AIZ 1
+	D7 = (D7 << 16) + (D7 >> 16)
+	D3 = (D3 << 16) + (D3 >> 16)
+
+	while (true)
+	{
+		D3.u16 = u16[(A4+=2)-2]
+		D7.u8 = (D3.s16 < 0) ? 0xff : 0x00
+		D3.u16 &= 0x7fff
+		D0.u16 -= D3.u16
+		if (D0.s16 < 0)
+			break
+
+		if (D7.u8 == 0)
+		{
+			A5 += 2
+		}
+		else
+		{
+			A5.u16 += D3.u16 * 2
+		}
+	}
+
+	if (D7.u8 != 0)
+	{
+		D3.u16 = (D3.u16 + D0.u16) * 2
+		A5.u16 += D3.u16
+	}
+
+	D3 = (D3 << 16) + (D3 >> 16)
+	D0.s16 = -D0.s16
+	D4.u16 = D1.u16 - D0.u16
+	if (D4.s16 < 0)
+	{
+		D0.u16 = D1.u16
+	}
+	else
+	{
+		--D0.u16
+	}
+
+	while (true)
+	{
+		if (D7.u8 != 0)
+		{
+			while (D0.s16 >= 0)
+			{
+				D6.u16 = u16[(A2+=2)-2]
+				D6 = (D6 << 16)
+				if (A1 == 0xffffe380)	// first offset beyond what 224px screen height uses
+					A6 -= 0x80			// shift pointer to earlier in the repeating data
+				D6.u16 = u16[(A6+=2)-2] - s16[(A5+=2)-2]
+				u32[(A1+=4)-4] = D6
+				--D0.s16
+			}
+		}
+		else
+		{
+			D5.s16 = -s16[(A5+=2)-2]
+			while (D0.s16 >= 0)
+			{
+				D6.u16 = u16[(A2+=2)-2]
+				D6 = (D6 << 16)
+				if (A1 == 0xffffe380)	// first offset beyond what 224px screen height uses
+					A6 -= 0x80			// shift pointer to earlier in the repeating data
+				D6.u16 = u16[(A6+=2)-2] + D5.u16
+				u32[(A1+=4)-4] = D6
+				--D0.s16
+			}
+		}
+
+		if (D4.s16 < 0)
+			break
+
+		D0.u16 = u16[(A4+=2)-2]
+		D7.u8 = (D0.s16 < 0) ? 0xff : 0x00
+		D0.u16 &= 0x7fff
+
+		D5.u16 = D4.u16
+		D4.u16 -= D0.u16
+		if (D4.s16 < 0)
+		{
+			D0.u16 = D5.u16
+		}
+		else
+		{
+			--D0.u16
+		}
+	}
+	D7 = (D7 << 16) + (D7 >> 16)
+}
+
+// Adjust the lower screen boundary for the AIZ1 boss (two locations) based on screen height.
+function void AIZ1a.checkPreBossArea()
+{
+	// Skip check for boss in Time Attack
+	if (Game.isTimeAttack())
+		return
+
+	// Using the upper or the lower path?
+	bool isOnUpperPath = (camera.position.y.u16 < 0x400)
+
+	if (isOnUpperPath)
+	{
+		D0.u16 = (camera.position.x.u16 >= 0x0ed0) ? 0x02b8 - getScreenHeightExtend() : 0x0590
+	}
+	else
+	{
+		D0.u16 = (camera.position.x.u16 >= 0x0e80) ? 0x0450 - getScreenHeightExtend() : 0x0590
+	}
+	move_area.bottom.current = D0.u16
+	move_area.bottom.target = D0.u16
+
+	if (isOnUpperPath)
+	{
+		if (camera.position.x.u16 >= 0x0f50)
+		{
+			move_area.left = 0x0f50
+			// Choose boss area depending on which route has been taken, not the character selection
+			//  -> Search for this same comment to find another place with similar code
+			move_area.right = ((camera.position.y.u16 >= 0x03a0) ? 0x10c0 : 0x10e0) + getScreenExtend()
+
+			if (debug_mode.state == 0)
+			{
+				if (allocDynamicObjectStd())
+				{
+					// Trigger boss
+					objA1.update_address = addressof(Boss.AIZ1.BaseUpdate)
+					objA1.position.x.u16 = 0x11f0
+					objA1.position.y.u16 = 0x0289
+				}
+			}
+			camera.update_routine = 0x06
+		}
+	}
+	else
+	{
+		if (camera.position.x.u16 >= 0x1040)
+		{
+			move_area.left = 0x1040
+			if (debug_mode.state == 0)
+			{
+				if (allocDynamicObjectStd())
+				{
+					// Trigger boss
+					objA1.update_address = addressof(Boss.AIZ1.BaseUpdate)
+					objA1.position.x.u16 = 0x11d0
+					objA1.position.y.u16 = 0x0420
+				}
+			}
+			water.height.target = 0x0f80
+			camera.update_routine = 0x16
+		}
+	}
+}
+
+//# address-hook(0x01c6dc) end(0x01c6f4)
+function void fn01c6dc()
+{
+	if (camera.position.x.u16 >= 0x1500)
+	{
+		move_area.bottom.current = 0x0630 - getScreenHeightExtend()
+		move_area.bottom.target = 0x0630 - getScreenHeightExtend()
+		camera.update_routine += 2
+	}
+}
+
+// Adjust the lower camera boundary on Knuckles's route based on screen height.
+//# address-hook(0x01c80a) end(0x01c81c)
+function void fn01c80a()
+{
+	if (camera.position.x.u16 >= 0x11a0)
+	{
+		move_area.bottom.target = 0x0820 - getScreenHeightExtend()
+		camera.update_routine += 2
+	}
+}
+
+// Match this water level change check to the above lower camera boundary.
+//# address-hook(0x006dde) end(0x006e6c)
+function void UpdateWaterSurfaceLevel.AIZ2()
+{
+	if (isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		if (move_area.bottom.target == 0x0820 - getScreenHeightExtend() || camera.position.x.u16 >= 0x3b60)
+			return
+	}
+
+	// Somewhere in here:
+	//  - Lower water level
+	//  - Cause screen shake to start
+
+	if (camera.position.x.u16 < 0x2440)
+	{
+		if (water.height.target == 0x0618)
+		{
+			water.height.target = 0x0528
+			water.height.changerate = 2
+		}
+	}
+	else
+	{
+		if (level.trigger00 == 0)
+		{
+			if (camera.position.x.u16 < 0x2850)
+				return
+
+			level.trigger00 = 1
+		}
+
+		if (water.height.target != 0x0618)
+		{
+			if (camera.position.x.u16 < 0x2900)
+			{
+				camera.screenshake.state = 0xffff
+				if (allocDynamicObjectStd())
+				{
+					objA1.update_address = addressof(Object.ScreenShakeTimeout)
+					u8[A1 + 0x24] = 0xb4
+				}
+			}
+
+			A3 = 0xffff8024
+			D1 = 4
+			while (D1 > 0)
+			{
+				A1 = 0xffff0000 + u16[A3]
+				u8[A1 + 0x4e] = 0
+				A3 += 4
+				--D1
+			}
+			water.height.target = 0x0618
+		}
+	}
+}
+
+// Adjust when the upper camera lock starts when exiting the tunnel before the airship sequence.
+// At wider than 400px, we need a more accurate condition for camera locking.
+// We also set the value in accordance with the screen height.
+//# address-hook(0x01c746) end(0x01c75e)
+function void fn01c746()
+{
+	if (u16[0xffffb010] >= 0x3fce && u16[0xffffb014] < 0x01c0)	// formerly if (camera.position.x.u16 >= 0x3f00)
+	{
+		D0.u16 = 0x015a - getScreenHeightExtend()
+		level.vertical_wrap = D0.u16
+		move_area.top.target = D0.u16
+		camera.update_routine += 2
+	}
+}
+
+// When even closer to the airship sequence, set the lower camera lock appropriately.
+//# address-hook(0x01c760) end(0x01c778)
+function void fn01c760()
+{
+	if (camera.position.x.u16 >= 0x4000)
+	{
+		D0.u16 = 0x015a - getScreenHeightExtend()
+		move_area.bottom.current = D0.u16
+		move_area.bottom.target = D0.u16
+		camera.update_routine += 2
+	}
+}
+
+// Load the extra background trees between the airship and the boss
+// at an appropriate y position when the screen height is altered.
+//# address-hook(0x050664) end(0x050684)
+function void fn050664()
+{
+	objA0.update_address = 0x05068a
+	objA0.sprite_attributes = 0x0438
+	objA0.mapping_offset = 0x23c248
+	objA0.position.y.u16 = 0xe9 + getScreenHeightExtend()
+	objA0.countdown_value = 0x01c0
+	u16[A0 + 0x30] = u16[0xffffeeb6] + getScreenExtend() * 3	// Screen width dependency is just trial-and-error here
+	fn05068a()
+}
+
+// Set screen lock appropriately when approaching Knuckles's AIZ2 boss.
+//# address-hook(0x01c81e) end(0x01c868)
+function void fn01c81e()
+{
+	if (camera.position.x.u16 >= 0x3b80 && kosinski.waiting_modules == 0)
+	{
+		Kosinski.addToDecompressionQueue(0x3b1372, 0xffff9ab8)
+		Kosinski.addToDMAQueue(0x3b48c6, 0x3f80)
+
+		Level.loadPaletteData(0x30)		// AIZ 2 bombing scene palette
+
+		move_area.left = 0x3b80
+		move_area.bottom.target = 0x05da - getScreenHeightExtend()
+		u8[0xffffeec6] = 0xff
+		camera.update_routine += 2
+	}
+}
+
+//# address-hook(0x04ff3a) end(0x04ff70)
+function void fn04ff3a()
+{
+	if (u16[0xffffeec4] == 0)
+	{
+		LoadTileContentDefault()
+		return
+	}
+
+	// This code is only reached in the blimp sequence before AIZ 2 boss
+
+	if (getScreenHeightExtend() <= 0)
+	{
+		u16[0xffffeec4] = 0
+	}
+	u16[0xffffeec8] = 0x0180
+	u16[0xffffeeca] = 0x05
+	u32[0xffffa9f8] = 0
+	u16[0xffffa9fe] = (camera.foreground.x.u16 & 0xfff0) - 0x10
+	player1.camera_lock = 0xff
+	level.special_scrolling = 0x04
+	u16[0xffffeec0] += 4
+
+	fn04ff74()
+}
+
+// We make some corrections here for the blimp scrolling at extended screen heights
+// and set a timer for screen redrawing to correct some issues.
+//# address-hook(0x04ff74) end(0x050052)
+function void fn04ff74()
+{
+	D1.u16 = 0x4380
+	D2.u16 = camera.foreground.y.u16 - 0x10
+
+	fn04ef56()
+	if (_negative())
+	{
+		D0.u16 = 0x4020
+		u16[0xffffa9f6] = D0.u16
+		u32[0xffffee98] = (D0.u16 - getScreenExtend() / 2) << 16
+		D0.u16 = (camera.foreground.y.u16 + 0x8f0) & level.height.tilemask
+		u16[0xffffee9c] = D0.u16
+		u16[0xffffeea2] = D0.u16
+
+		if (allocDynamicObjectStd())
+		{
+			// Spawn Blimp
+			objA1.update_address = 0x05034a
+		}
+
+		// Set a timer to determine when to use fillPlaneA_Default() to redraw screen oddities from the unique scrolling here
+		if (getScreenHeightExtend() > 0)
+		{
+			fillPlaneA_Default(camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth() + 16, getScreenHeight())
+			unused.teleport_timer = 1
+		}
+
+		// Configure H-Int to set a different scroll-y offset in between
+		//  -> Namely the one in "camera.foreground.y.u16"
+		else
+		{
+			u8[0xffffeed6] = 0xff
+		}
+		irq_table.lineupdate = 0x050056
+		level.water_present = 0
+		h_int.line = 0x40
+		u16[0xffffeec0] += 4
+
+		fn04ffd4()
+	}
+	else
+	{
+		fn04fff0()
+	}
+}
+
+// Do not call a drawing function for AIZ2 blimp plane rendering if the screen height is extended
+function void fn04fff0()
+{
+	A4 = 0x050072
+	A6 = 0xffffa9f8
+	u16[A6 + 4] = camera.foreground.x.u16
+	D5 = 2
+	D6.u16 = camera.foreground.y.old
+	if (getScreenHeightExtend() <= 0)
+		fn04ee20()
+}
+
+// Adjust how the pre-boss looping area is handled at screen heights above 224.
+//# address-hook(0x05001c)
+function void fn05001c()
+{
+	D1.u16 = 0x4380
+	D2.u16 = camera.foreground.y.u16 - 0x10
+
+	fn04ef56()
+	if (_negative())
+	{
+		D0.u16 = (camera.foreground.x.u16 & 0xfff0) - 0x10
+		camera.foreground.x.old = D0.u16
+		if (getScreenHeightExtend() <= 0)
+		{
+			u16[0xffffeed4] = 0x46c0
+		}
+		u16[0xffffeed6] = 0
+		h_int.line = 0xff
+		u16[0xffffeec0] += 4
+		LoadTileContentDefault()
+	}
+	else
+	{
+		fn04fff0()
+	}
+}
+
+// Correct chunks at the horizontal wrap point within the trees before the boss
+// to account for our scrolling changes and wider screen resolution.
+//# address-hook(0x0500e6) end(0x0500e6)
+function void fn0500e6()
+{
+	if (camera.position.x.u16 >= 0x4600)
+	{
+		u32[0xffff8242] = 0xeaeaeaea
+		u16[0xffff8246] = 0xeaea
+		u32[0xffff82da] = 0xe9e9e9e9
+		u16[0xffff82de] = 0xe9e9
+		u32[0xffff8372] = 0xe8e8e8e8
+		u16[0xffff8376] = 0xe8e8
+	}
+
+	base.fn0500e6()
+}
+
+// Have the main blimp controller object render an image of the blimp when the screen height is extended.
+// We also need to shift the blimp back a bit in the original bombing sequence, else it hurts player
+// characters running full speed.
+//# address-hook(0x050390) end(0x050424)
+function void fn050390()
+{
+	if (getScreenHeightExtend() <= 0)
+	{
+		base.fn050390()
+		return
+	}
+	
+	// Blimp movement
+#if STANDALONE
+	if (Game.getSetting(SETTING_AIZ_BLIMPSEQUENCE))
+	{
+		u32[0xffffee98] -= 0x10000
+	}
+	else
+	{
+		u32[0xffffee98] -= 0x8800 + ((getScreenExtend() / 4) << 8)
+	}
+#else
+	u32[0xffffee98] -= 0x8800
+#endif
+
+	bool bomberEnded = false	// We don't want to stop drawing the bomber before it's completely off screen.
+	if (u16[0xffffee98] < 0x3cdc)
+	{
+		u16[0xffffeed4] = 0x46c0
+		objA0.update_address = 0x0506be
+		u8[0xffffeec4] = 0xff
+		if (allocDynamicObjectAfterA0())
+		{
+			// Spawn the tree spawner
+			objA1.update_address = 0x050614
+		}
+		bomberEnded = true
+	//	return
+	}
+
+	D1.u16 = u16[0xffffee98]
+	D0.u16 = u16[0xffffee98] - 0x3d5c
+	if (D0.s16 < 0)
+	{
+		u16[0xffffee9c] = u16[0xffffeea2] + ((-D0.s16) >> 1)
+	}
+	else
+	{
+		D1.u16 = (D1.u16 >> 2) & 0x0f
+		u16[0xffffee9c] = u16[0xffffeea2] + u8[0x23c096 + D1.s16]
+	}
+
+	u16 bomberOffset = Game.getSetting(SETTING_AIZ_BLIMPSEQUENCE) ? 0 : 20
+	Renderer.drawCustomSprite("aiz2_bomber", 0x3d80 - u16[0xffffee98] - bomberOffset, 0x0a00 - u16[0xffffee9c], 0x00, SPRITE_FLAG_PRIO, 0x9f7b)
+	if (bomberEnded)
+	{
+		// Leverage some scratch RAM to track the bomber as it goes offscreen
+		unused.player2.total_rings = u16[0xffffee98]
+		unused.player2.item_count = u16[0xffffee9c]
+		return
+	}
+
+	D0.u16 = (level.framecounter - 1) & 0x0f
+	if (D0.u16 == 0)
+	{
+		playSound(0xbd)
+	}
+
+	--s16[A0 + 0x32]
+	if (s16[A0 + 0x32] == -1)	// Do not check for (s16[A0 + 0x32] < 0) here, as this would lead to different behaviour
+	{
+		// Table with bomb spawn data from 0x23c0a6 on;
+		// consists of 21 entries with the following 2 words each:
+		//  - Frames until next bomb drop (0x20 or 0x40)
+		//  - Position offset, e.g. 0x3f5c
+		A2 = u32[A0 + 0x2e]
+		objA0.value32 = u16[A2]
+
+		if (s16[A0 + 0x32] >= 0)
+		{
+			if (allocDynamicObjectAfterA0())
+			{
+				// Spawn bomb
+				objA1.update_address = 0x05047c
+				u16[A1 + 0x2e] = u16[A2+2]
+
+				u32[A0 + 0x2e] += 4
+			}
+		}
+	}
+}
+
+// Align bombs and propellors with the image of the bomber in the original sequence
+//# address-hook(0x050586) end(0x0505a2)
+function void fn050586()
+{
+	objA0.position.x.u16 = objA0.countdown_value - u16[0xffffee98] + camera.foreground.x.u16
+	if (getScreenHeightExtend() > 0 && !Game.getSetting(SETTING_AIZ_BLIMPSEQUENCE))
+	{
+		objA0.position.x.u16 -= 20
+	}
+	objA0.position.y.u16 = D0.u16 + camera.screenshake.offset - camera.screenshake.prev_offset
+}
+
+// Set the height for Eggman flying behind trees before the boss based on screen height
+//# address-hook(0x0506be) end(0x0506fc)
+function void fn0506be()
+{
+	objA0.update_address = 0x050700
+	objA0.sprite_priority = 0x0300
+	objA0.sprite_attributes = 0x0500
+	objA0.mapping_offset = 0x23c264
+	objA0.position.x.u16 = 0x30
+	objA0.position.y.u16 = 0xd8 + 2*getScreenHeightExtend()
+	objA0.velocity.x = 0x05
+	objA0.countdown_value = 0
+
+	copyMemory(0xfffffc22, 0x23c07a, 0x1c)
+	fn050700()
+}
+
+// The bomber needs more time than usual to get off screen with an extended screen height.
+// Continue to draw it and move it as the player character approaches the trees.
+//# address-hook(0x050700) end(0x05077c)
+function void fn050700()
+{
+	if (level.framecounter.low % 2 == 0)
+		unused.player2.total_rings -= 1
+	if (level.framecounter.low % 4 == 0)
+		unused.player2.item_count += 1
+	u16 bomberOffset = Game.getSetting(SETTING_AIZ_BLIMPSEQUENCE) ? 0 : 20
+	Renderer.drawCustomSprite("aiz2_bomber", 0x3d80 - (unused.player2.total_rings) - bomberOffset, 0x0a00 - (unused.player2.item_count), 0x00, SPRITE_FLAG_PRIO, 0x9f7b)
+
+	base.fn050700()
+}
+
+// Change when propellors despawn if the screen height is extended
+//# address-hook(0x050458) end(0x050476)
+function void fn050458()
+{
+	if ((u16[0xffffeec0] == 0x0c && getScreenHeightExtend() <= 0) || unused.player2.item_count > 0)
+	{
+		UnloadObject()
+	}
+	else
+	{
+		Object.animationUpdate(0x23c1aa)
+		fn05057a()
+		DrawObject()
+	}
+}

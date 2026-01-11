@@ -1,0 +1,30 @@
+{
+	"Metadata":
+	{
+		"Name": "Origins Screen Resolution",
+		"UniqueID": "thorn-originsresolution",
+		"Author": "Thorn",
+		"Description": "Expands the screen resolution in normal zones and special stages to match the default Origins/RSDK resolution.\n\nThe default screen height is a core assumption made by A.I.R. and many mods. Do NOT expect compatibility with other mods.",
+		"URL": "https://github.com/ThornTSC/OriginsResolution/releases",
+		"ModVersion": "1.0.0.0",
+		"GameVersion": "24.02.02.0"
+	},
+	"Settings":
+	{
+		"List":
+  		[
+			{
+				"InternalName": "ScreenWidth",
+				"DisplayName": "Screen Width",
+				"Variable": "screen_width",
+				"DefaultValue": "426",
+			 	"Category": "Gameplay Settings",
+				"Options":
+				{
+					"424": "424px (Origins)",
+					"426": "426px (Forever)"
+				}
+			}
+		]
+	}
+}

@@ -1,0 +1,253 @@
+// Adjust the camera position check for the avalanche at the start of ICZ1 to consider screen height
+//# address-hook(0x01c9e0) end(0x01c9f8)
+function void fn01c9e0()
+{
+	if (camera.position.x.u16 >= 0x3700 && camera.position.y.u16 >= 0x068c - (getScreenHeightExtend()/2))
+	{
+		u8[0xffffeec6] = 0xff
+		camera.update_routine += 2
+	}
+}
+
+// Adjust the camera boundaries for the ICZ1 boss in accordance with screen height
+//# address-hook(0x07117e) end(0x0711aa)
+function void fn07117e()
+{
+	objA0.value26 = MUSIC_MINIBOSS_2
+	StartBossFight()
+
+	#if STANDALONE
+	{
+		// Manipulate target values for camera boundaries
+		level.bossarea.left -= getScreenExtend() * 2
+        level.bossarea.top -= getScreenHeightExtend()
+        level.bossarea.bottom -= getScreenHeightExtend()
+	}
+	#endif
+
+	objA0.update_address = 0x0711b0
+	objA0.countdown_callback = addressof(Boss.ICZ1.Init)
+
+	requestLoadingPatterns(0x5f)		// Boss sprites
+	loadPaletteLine1(0x0719da)
+}
+
+// When the ICZ1 boss snowballs spawn or snap to positions, adjust those positions for the screen height
+//# address-hook(0x0716f4) end(0x0716fc)
+function void fn0716f4()
+{
+	objA0.position.y.u16 = level.bossarea.top + 0xd8 + getScreenHeightExtend()
+	fn071700()
+}
+
+//# address-hook(0x0718ca) end(0x0718d6)
+function void fn0718ca()
+{
+	objA0.position.y.u16 = level.bossarea.top - 0x40 + getScreenHeightExtend()
+	fn071700()
+}
+
+// For aesthetics (and to align with Origins), align the ICZ2 outdoor background down
+// when the screen height increases and draw a rectangle of extra sky.
+// Unlike the MGZ2 background bottom correction, we aren't viewing transparency here:
+// we actually need to draw over the background wrapping vertically.
+//# address-hook(0x23e0c2) end(0x23e138)
+function void UpdateBackgroundScrolling.ICZ2.Outdoors()
+{    
+	camera.background.y.u16 = 0 - getScreenHeightExtend()
+    if (getScreenHeightExtend() > 0)
+    {
+        Renderer.drawCustomSprite("atex_rectangle", 0, -512 + getScreenHeightExtend(), 0x38, SPRITE_FLAG_PRIO, 0x1001)
+    }
+
+	// Parallax effect of moving ice
+	D0.u16 = camera.foreground.x.u16 + (level.framecounter >> 1)
+	D0 = (D0 & 0xff) << 15
+	D1 = D0 >> 6
+	D2 = 0
+
+#if STANDALONE
+	if (getScreenWidth() > 320)
+	{
+		while (D2 < 80)
+		{
+			u16 offset = D0 >> 16
+
+			// Making this effect work in widescreen requires usage of some special renderer effects
+			u16 lineNumber = 175 - D2 / 2 + getScreenHeightExtend()
+			u16 patternWidth = 128 - D2		// Between 50 and 128
+			offset = (offset - getScreenExtend() + patternWidth * 2) % patternWidth
+
+			// "offset" will contain scroll offset for left side, while right side scroll offset is passed directly to renderer
+			u16 rightSideOffset = offset - patternWidth * (320 / patternWidth)
+			Renderer.setScrollOffsetH(2, lineNumber, rightSideOffset)
+
+			u16[0xffffa862 - D2] = offset
+			D0 -= D1
+			D2 += 2
+		}
+
+		Renderer.enableDefaultPlane(0, false)
+		Renderer.setupPlane(0, 0, 320, getScreenHeight(), 0x00, 0, 0x1000)
+		Renderer.setupPlane(320, 0, getScreenWidth() - 320, getScreenHeight(), 0x00, 2, 0x1000)
+	}
+	else
+#endif
+	{
+		while (D2 < 80)
+		{
+			u16[0xffffa862 - D2] = (D0 >> 16)
+			D0 -= D1
+			D2 += 2
+		}
+	}
+
+	// Water sparkle a bit further away
+	A1 = 0xffffa800
+	D0 = u32(camera.foreground.x.u16) << 16
+	D0.s32 >>= 1
+	D1 = D0
+	D0.s32 >>= 1
+	D1 += D0
+	u32[A1 + 0x64] = D1
+	D0.s32 >>= 2
+	D1 = D0
+	u16[(A1+=2)-2] = D0 >> 16
+	D0 += D1
+	D0 = (D0 << 16) + (D0 >> 16)
+	u16[(A1+=2)-2] = D0.u16
+	D1.u16 = (level.framecounter >> 2) & 0x3e
+	A5 = 0x23be5a + D1.u16
+	D1 = 8
+	while (D1 > 0)
+	{
+		D2.u16 = u16[(A5+=2)-2]
+		D2.u16 += D0.u16
+		u16[(A1+=2)-2] = D2.u16
+		--D1
+	}
+}
+
+// Adjust ICZ2 indoor background position for screen height
+// and hide ICZ1 Knuckles boss ice block spawning
+//# address-hook(0x23e13a) end(0x23e1a8)
+function void UpdateBackgroundScrolling.ICZ2.Indoors()
+{
+	D0.s16 = s16(camera.foreground.y.u16 - 0x0700) >> 2
+	camera.background.y.u16 = 0x0118 + D0.s16 - getScreenHeightExtend()
+
+	A1 = 0xffffa800
+	D0.u16 = camera.foreground.x.u16
+	D0 = (D0 << 16)
+	D0.s32 >>= 1
+	D1 = D0.s32 >> 3
+	u16[A1] = D0 >> 16
+	objA1.position.x.u16 = D0 >> 16
+	D0 -= D1
+	u16[A1 + 0x02] = D0 >> 16
+	u16[A1 + 0x0e] = D0 >> 16
+	D0 -= D1
+	u16[A1 + 0x04] = D0 >> 16
+	u16[A1 + 0x0c] = D0 >> 16
+	D0 -= D1
+	u16[A1 + 0x06] = D0 >> 16
+	u16[A1 + 0x0a] = D0 >> 16
+	D0 -= D1
+	camera.background.x.u16 = D0 >> 16
+	u16[A1 + 0x08] = D0 >> 16
+	D0 -= D1
+	D0 = (D0 << 16) + (D0 >> 16)
+	u16[0xffffeee2] = D0.u16
+
+	// Add a sprite mask under Knuckles's Act 1 boss to hide the spawning of the ice blocks
+	Renderer.addSpriteMaskWorld(0x0610, 0x09a0, 0x08f0 - 0x0610, 0x09c8 - 0x09a0, 0x9dff, 1)
+}
+
+// Use this otherwise empty ICZ2 camera bounds routine to adjust the bounds in accordance with screen height
+//# address-hook(0x01ca3c) end(0x01ca3c)
+function void fn01ca3c()
+{
+    if (getScreenHeightExtend() && move_area.bottom.target == 0x0b20)
+    {
+        move_area.bottom.target -= getScreenHeightExtend()
+        move_area.bottom.current -= getScreenHeightExtend()
+    }
+}
+
+// Adjust the background switch y values when switching ICZ2 backgrounds
+// at non-standard screen heights.
+//# address-hook(0x053d60)
+//# address-hook(0x053d78) end(0x053e58)
+function void fn053d78()
+{
+	// This function updates both foreground and background x-scrolling
+
+	// Switch between indoors and outdoors if necessary
+	bool indoors = (u16[0xffffeee8] != 0)
+	if (!indoors)
+	{
+		D0.u16 = camera.position.x.u16
+		if (D0.u16 >= 0x1000 && D0.u16 < 0x3600)
+		{
+			if (camera.position.y.u16 >= 0x0720 - getScreenHeightExtend())
+			{
+				// Switch to indoors
+				fn053d96()
+				return
+			}
+		}
+
+		UpdateBackgroundScrolling.ICZ2.Outdoors()
+	}
+	else
+	{
+		D0.u16 = camera.position.x.u16
+		if (D0.u16 >= 0x1000 && D0.u16 < 0x3600)
+		{
+			if (D0.u16 < 0x1900 || D0.u16 >= 0x1b80)
+			{
+				if (camera.position.y.u16 < 0x0720 - getScreenHeightExtend())
+				{
+					// Switch to outdoors
+					fn053dfc()
+					return
+				}
+			}
+		}
+
+		UpdateBackgroundScrolling.ICZ2.Indoors()
+
+		A6 = addressof(camera.background.y)			// Address: 0xffffee90
+		A5 = addressof(camera.background.y.old)		// Address: 0xffffee96
+		D1 = 0
+		D6 = 0x20
+		LoadTileContentInDirY()
+	}
+
+	A4 = indoors ? 0x23e246 : 0x23e23e
+	A5 = 0xffffa800
+	fn04f0ce()
+
+#if STANDALONE
+	// Limit movement to where the boss area ends, to prevent Knuckles from gliding over the upper boss and into Act 2
+	//  -> This can safely applied for the lower boss as well, as it's using the same x-positions
+	if (global.zone_act == 0x0501 && global.zone_act.apparent == 0x0500 && move_area.right == 0x7000)
+	{
+		move_area.right = 0x06f0
+	}
+#endif
+}
+
+// This function for loading the outdoor ICZ2 background when leaving indoors needs our outdoor background y height adjustment undone to function properly.
+//# address-hook(0x053e68)
+function void fn053e68()
+{
+	D1 = 0
+	D2.u16 = camera.background.y.u16 + getScreenHeightExtend()
+	fn04ef56()
+	if (_negative())
+	{
+		level.scrolling_routine -= 4
+	}
+	fn053dca()
+}

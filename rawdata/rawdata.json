@@ -1,0 +1,7 @@
+{  
+  // LRZ2 boss layout for 240px screen height
+  "LRZ2BossLayout":  { "File": "LRZ2BossLayout.bin" },
+
+  // DEZ final boss layout for 240px screen height
+  "DEZFinalBossLayout":  { "File": "DEZFinalBossLayout.bin" }
+}

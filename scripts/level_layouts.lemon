@@ -1,0 +1,110 @@
+// Load altered chunks for 240px screen height
+//# address-hook(0x01c2b0) end(0x01c360)
+function void fn01c2b0()
+{
+	// Decompress 16x16 level blocks into its area in RAM
+	A2 = MainGame.getLevelDataPointer()		// Pointer to level art data
+
+	D0 = u32[A2+8] & 0x00ffffff		// Ignoring upper byte, which is the palette entry ID for level
+	D7 = D0
+    if (global.zone_act == 0x1700 && getScreenHeightExtend() >= 0x10)	    // get new blocks from ROM injection location for DEZ final boss with raised screen height
+    {
+        Kosinski.decompress(0x2d266e, 0xffff9000)							// decompress them to their proper RAM
+    }
+	else
+	{
+		Kosinski.decompress(D0, 0xffff9000)
+	}
+
+	D0 = u32[A2+12] & 0x00ffffff		// Pointer to second set of blocks
+	if (D7 != D0)						// Checking if the two pointers aren't duplicates of eachother
+	{
+		Kosinski.decompress(D0, A1)
+	}
+
+	// Decompress 128x128 level chunks into its area in RAM
+	D0 = u32[A2+16] & 0x00ffffff
+	D7 = D0
+	Kosinski.decompress(D0, 0xffff0000)
+
+	D0 = u32[A2+20] & 0x00ffffff
+    if (global.zone_act == 0x1600 && getScreenHeightExtend() >= 0x10)		    // get new chunks from ROM injection location for LRZ2 boss with raised screen height
+    {
+        Kosinski.decompress(0x2d1e58, A1)										// decompress them to their proper RAM
+    }
+	else if (global.zone_act == 0x1700 && getScreenHeightExtend() >= 0x10)		// get new chunks from ROM injection location for DEZ final boss with raised screen height
+	{
+		Kosinski.decompress(0x2d1800, A1)										// decompress them to their proper RAM
+	}
+	else if (D7 != D0)
+	{
+		Kosinski.decompress(D0, A1)
+	}
+
+	// Rewrite the Gumball Machine's chunks to remove the machine (replaced with an image)
+	if (global.zone == 0x13)
+	{
+		// Remove upper-left of gumball machine
+		for (u32 address = 0xffff00d0; address < 0xffff0100; address += 0x10)
+		{
+			u32[address + 0x08] = 0
+			u32[address + 0x0c] = 0
+		}
+
+		// Remove upper-right of gumball machine
+		for (u32 address = 0xffff0150; address < 0xffff0180; address += 0x10)
+		{
+			u32[address] = 0
+			u32[address + 0x04] = 0
+		}
+
+		// Remove left and lower-left of gumball machine
+		for (u32 address = 0xffff0180; address < 0xffff0200; address += 0x10)
+		{
+			u32[address + 0x08] = 0
+			u32[address + 0x0c] = 0
+		}
+
+		// Remove right and lower-right of gumball machine
+		for (u32 address = 0xffff0200; address < 0xffff0280; address += 0x10)
+		{
+			u32[address] = 0
+			u32[address + 0x04] = 0
+		}
+	}
+
+	fn01c362()
+
+	D1.u8 = u8[A2]
+	D0 = u8[A2+4]
+	if (D0.u8 != 0 && D1.u8 != D0.u8)
+	{
+		requestLoadingPatterns(D0.u8)
+	}
+
+	// Load level palette
+	Level.loadNonfadingPaletteData(u8[A2+8])
+
+#if STANDALONE
+	//// Copy 16 palette entries from 0x10 to 0x90, primarily for the rings
+	//// TODO: Here is not a good place to do this, as
+	////  - 1.) the primary palette has to be updated when fully underwater
+	////  - 2.) fading effects won't work this way
+	//for (u8 i = 0; i < 0x10; ++i)
+	//{
+	//	Renderer.setPaletteEntryPacked(0x90 + i, u16[0xfffffca0 + i * 2])
+	//	Renderer.setSecondaryPaletteEntryPacked(0x90 + i, u16[0xfffff020 + i * 2])
+	//}
+#endif
+}
+
+// Load altered boss layouts for 240px screen height
+//# address-hook(0x01c362) end(0x01c388)
+function void fn01c362()
+{
+	base.fn01c362()
+	if (global.zone_act == 0x1600 && getScreenHeightExtend() >= 0x10)
+		System.loadExternalRawData("LRZ2BossLayout", 0xffff8000)
+	else if (global.zone_act == 0x1700 && getScreenHeightExtend() >= 0x10)
+		System.loadExternalRawData("DEZFinalBossLayout", 0xffff8000)
+}

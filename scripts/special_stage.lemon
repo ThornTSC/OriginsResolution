@@ -1,0 +1,787 @@
+// Do not allow altered screen sizes in the Blue Spheres menu.
+//# address-hook(0x04c97e) end(0x04cb18)
+function void fn04c97e()
+{
+#if STANDALONE
+	// Assuming a white screen here
+	globalComponentAddedColorR = 0xff
+	globalComponentAddedColorG = 0xff
+	globalComponentAddedColorB = 0xff
+#endif
+
+	playMusic(MUSIC_CTRL_FADEOUT)
+	FadeOutScreenBlocking()
+
+	// Enforce AIR normal screen resolution after the screen is fully white or black.
+	Renderer.setScreenSize(400, 224)
+
+	fn04c8e4()
+	fn04cca6()
+
+#if STANDALONE
+	// Try to load progress from SRAM
+	SRAM.load(0xffffffa6, 0x50, 4)		// Writing to the address of bluespheregame.current_stage
+	System.loadPersistentData(0xffffffa6, "SRAM_BlueSphereProgress", 4)
+
+	// Switch to the correct seed for this stage
+	BlueSphere.setGeneratedStage(bluespheregame.current_stage)
+#endif
+
+	A2 = 0xfffffc80
+	fn04cb1a()
+
+	Nemesis.loadDataToVRAM(0x0dde34, BlueSphereGame.TextTiles.targetInVRAM)
+	Nemesis.loadDataToVRAM(0x189c7c, BlueSphereGame.BGLogo.targetInVRAM)		// Sonic & Knuckles head logo
+
+	// Character background art
+	Kosinski.decompress(0x187d1c, 0xffff0000)
+	Kosinski.decompress(0x188f1e, A1)
+	updateSpritePattern(0xffff0000, BlueSphereGame.Background.targetInVRAM, A1.u16 >> 1)
+
+	// Menu items. Includes text graphics, level code digits, copyright information, cursor bumpers and star icons
+	Kosinski.decompress(0x1897de, 0xffff4000)
+	updateSpritePattern(0xffff4000, BlueSphereGame.Menu.targetInVRAM, 0x06d0)
+
+	// Plane mapping for big character art in the background
+	Enigma.decompress(0x187cb0, 0xffff8000, (sprite_attribute.PALETTE.LINE1 | (BlueSphereGame.Background.targetInVRAM >> 5)))
+
+	//copyRectToVRAM(0xffff8000, 0xc380, 0x28, 0x10)	// Should be the same as below, needs to be tested
+	A1 = 0xffff8000
+	D0 = 0x43800003
+	D1 = 0x27
+	D2 = 0x0f
+	CopyRectToVRAM()
+
+	// Mapping for Sonic & Knuckles head logo in the background
+	Enigma.decompress(0x189c4e, 0xffff8000, (sprite_attribute.PALETTE.LINE2 | (BlueSphereGame.BGLogo.targetInVRAM >> 5)))
+
+	//copyRectToVRAM(0xffff8000, 0xe09c, 0x0c, 0x08)	// Should be the same as below, but something is wrong
+	A1 = 0xffff8000
+	D0 = 0x609c0003
+	D1 = 0x0b
+	D2 = 0x07
+	CopyRectToVRAM()
+
+	A1 = 0x04cc62	// "GET BLUE SPHERES!"
+	if (bluespheregame.menu_flags == 0)
+	{
+		A1 = 0x04cc36	// "NO WAY! NO WAY! NO WAY! NO WAY?"
+		levelselect.characters = CHARS_SONIC_ALONE
+		scrolloffset.y.both = 0xfff0fff8
+	}
+
+	D2.u16 = 0x0100
+	D6.u16 = (BlueSphereGame.TextTiles.targetInVRAM >> 5)
+	fn05b318()
+	if (bluespheregame.fully_unlocked == 0)
+	{
+		scrolloffset.y.both = 0xfff0fff8
+	}
+
+	u32[0xffffb000] = 0x04ceaa
+	u32[0xffffb04a] = 0x04da30	// Copyright text
+	u32[0xffffb094] = 0x04d986	// Animations for the four characters in background
+	UpdateGameObjects()
+	RenderSprites()
+
+	playMusic(MUSIC_CONTINUE)
+
+	VDP.Config.setActiveDisplay(true)
+
+	Menu.FadeInAfterInit()
+
+	while (true)
+	{
+		global.frame_state = 0x1a
+		Kosinski.ProcessDecompressionQueue()
+
+		waitForNextFrame()
+
+		fn04cc96()
+		UpdateGameObjects()
+		RenderSprites()
+		Kosinski.ProcessModules()
+
+		if (global.game_mode != 0x2c)
+			break
+	}
+}
+
+// We set the screen size for special stages while the screen is fully white.
+//# address-hook(0x0081c6) end(0x00858e)
+function void SpecialStage()
+{
+#if STANDALONE
+	playMusic(MUSIC_CTRL_FADEOUT)
+#else
+	playMusic(MUSIC_CTRL_STOP)
+#endif
+
+	kosinski.queue_size = 0
+	zeroMemory(0xffffff10, 0x6c)
+
+	ClearPatternLoadingQueue()
+	FadeScreenToWhiteBlocking()
+
+#if STANDALONE
+	// Add a small artificial delay here
+	for (u8 i = 0; i < 12; ++i)
+		yieldInWhiteScreen()
+#else
+	set_status_register(0x2700)
+#endif
+
+	// Set screen resolution
+	if (useRSDKheight())
+		Renderer.setScreenSize(screen_width, 240)
+
+	VDP.Config.enableHInt(false)
+	VDP.Config.setNameTableBasePlaneA(0xc000)
+	VDP.Config.setNameTableBasePlaneB(0xe000)
+	VDP.Config.setPlayfieldSizeInPixels(512, 256)
+	VDP.Config.setupWindowPlane(false, 0)	// Disable window plane
+	VDP.Config.setVerticalScrolling(false, 0)
+	VDP.Config.setBackdropColor(0x20)
+	VDP.Config.setRenderingModeConfiguration(false)
+	water.fullscreen = 0
+
+	fn0011ca()
+
+	zeroMemory(0xffffac00, 0x400)
+	zeroMemory(0xffffb000, 0x2000)
+	zeroMemory(0xfffffe6e, 0x4c)
+	zeroMemory(0xffffe400, 0x100)
+
+	u32[0xfffffe66] = 0
+	u32[0xfffffe6a] = 0
+
+	fn01aa6e()
+
+	u16[0xfffffb00] = 0
+	u32[0xfffffbfc] = 0xfffffb00
+
+	// Load special stage palette
+	//  -> Character colors is the 8 colors from 0xfffffc90 (for Sonic/Knuckles) and 0xfffffcb0 (for Tails)
+	copyMemory(0xfffffc80, 0x00896e, 0x100)
+	if (isMainCharacter(CHARACTER_KNUCKLES))
+	{
+		copyMemory(0xfffffc90, 0x0089ee, 0x10)
+	}
+
+#if STANDALONE
+	for (u8 player = 0; player < getNumPlayers(); ++player)
+	{
+		u8 character = getPlayerCharacter(player)
+		string paletteKey = getCharacterBluespherePaletteKey(character)
+		u16 numColors = System.loadExternalPaletteData(paletteKey, 0, 0x800000, 0x20)
+		if (numColors > 0)
+		{
+			u32 dest = 0x802180 + character * 0x40
+			for (u16 i = 0; i < numColors; ++i)
+			{
+				u16[dest + i * 2] = packColor(u32[0x800000 + i * 4])
+			}
+		}
+	}
+#endif
+
+	Nemesis.loadDataToVRAM(0x0b07b8, SpecialStage.CheckerFloor.targetInVRAM)		// Checkered Floor
+
+	fn0085b0()
+
+	// Checkered Floor mapping
+	Enigma.decompress(0x0aef54, 0xffff5500, (SpecialStage.CheckerFloor.targetInVRAM >> 5))
+	copyRectToVRAM(0xffff5500, 0xc000, 0x28, 0x1c)
+
+	Nemesis.loadDataToVRAM(0x0ad904, 0xd000)		// Sphere sprites
+	Nemesis.loadDataToVRAM(0x0adf60, 0xb4e0)		// Special stage ring sprites
+	Nemesis.loadDataToVRAM(0x0aeed0, SpecialStage.Background.targetInVRAM)
+	Nemesis.loadDataToVRAM(0x0ad472, SpecialStage.TextPromps.targetInVRAM)		// "get blue spheres" and "perfect" text
+	Nemesis.loadDataToVRAM(0x0ad5f4, 0xdf00)		// Arrow-like icon accompanying the above text
+	Nemesis.loadDataToVRAM(0x0ad650, 0xf020)		// Special Stage HUD digits
+
+	A0 = 0x0ad650
+	A4 = 0xffffe020
+	fn0015cc()
+
+	Nemesis.loadDataToVRAM(0x0ad7bc, SpecialStage.HUDIcons.targetInVRAM)		// Special Stage HUD icons
+	Nemesis.loadDataToVRAM(0x0ad430, 0xf400)		// Shadows
+
+	copyRectToVRAM(0x008d2c, 0xc084, 0x08, 0x03)
+	copyRectToVRAM(0x008d2c, 0xc0bc, 0x08, 0x03)
+
+	Enigma.decompress(0x0aedb0, 0xffff0000, (sprite_attribute.PALETTE.LINE2 | (SpecialStage.Background.targetInVRAM >> 5)))
+	copyRectToVRAM(0xffff0000, 0xe000, 0x40, 0x20)
+
+	Kosinski.decompress(0x0b2e36, 0xffff0000)		// skdisasm calls this "perspective maps"
+
+	fn009ea0()
+	fn00a0e6()
+
+	global.level_started = 0
+	bluespheres.bs_hud_dirty = 0xff
+	bluespheres.rings_flags = 0x80
+	bluespheres.current_gamespeed = 0x1000
+	bluespheres.speedup_countdown = BlueSpheres.useGeneratedStages() ? 2700 : 1800
+	camera.foreground.x.u16 = 0
+	camera.foreground.y.u16 = 0
+	level.height.bitmask = 0xffff
+
+	u32[0xffffb000] = 0x008faa
+	if (getNumPlayers() >= 2)
+	{
+		u32[0xffffb04a] = 0x009212
+	}
+	u32[0xffffb094] = 0x008df8
+	u32[0xffffb0de] = 0x008e40
+	UpdateGameObjects()
+
+	fn009d9e()
+	fn009dde()
+	RenderSprites()
+
+	BlueSpheres.RenderSpheres()
+	fn009d5e()
+
+	bluespheres.stage_exit_animation = 1
+	global.frame_state = 0x1c
+
+	waitForNextFrame()
+
+	bluespheres.stage_exit_animation = 0
+	VDP.Config.setRenderingModeConfiguration(true)		// Enable shadow/highlight palette mode
+
+	global.demo_countdown = 1800	// 30 seconds
+	fn0075d2()
+
+#if STANDALONE
+	if (BlueSpheres.useGeneratedStages())
+	{
+		playMusic(0xf8)		// Different music track, one that speeds up the music only every 45 (instead of 30) seconds
+	}
+	else
+#endif
+	{
+		playMusic(0x1c)
+	}
+
+	VDP.Config.setActiveDisplay(true)
+	BlueSpheres.FadeIn()
+
+	while (true)
+	{
+		UpdateGamePause()
+		global.frame_state = 0x1c
+		Kosinski.ProcessDecompressionQueue()
+
+		waitForNextFrame()
+	@EntryPoint:
+
+		++level.framecounter
+		UpdateRollingDemo()
+		UpdateGameObjects()
+
+		fn009d9e()
+		fn009dde()
+		RenderSprites()
+
+		BlueSpheres.RenderSpheres()
+		BlueSpheres.RenderCharacterSprites()
+		fn009d5e()
+		fn009b62()
+
+	#if GAMEAPP
+		BlueSpheres.renderCustomGround()
+		BlueSpheres.renderCustomCharacterShadows()
+	#elif STANDALONE
+		Renderer.setViewport(getScreenExtend(), 0, 320, 224, 0x0000)
+	#endif
+
+		LoadRequiredSpritePatterns()
+		Kosinski.ProcessModules()
+
+		if (global.rolling_demo && global.demo_countdown == 0)
+			break
+
+		if (global.game_mode != 0x34)	// Blue Spheres Special Stage
+			break
+
+	#if STANDALONE
+		// Only needed to support restart from the Pause Menu
+		//  -> Not used at the moment, so nevermind
+		if (level.restart)
+		{
+			global.game_mode = 0x0c		// Main Game
+			return
+		}
+	#endif
+	}
+
+	if (global.rolling_demo)
+	{
+		global.game_mode = 0		// Initialization
+	}
+
+	global.demo_countdown = 60
+	palette_fade.range = 0x003f
+	global.fadeout_countdown = 0
+
+	while (true)
+	{
+		global.frame_state = 0x1c
+
+		waitForNextFrame()
+
+		UpdateRollingDemo()
+		UpdateGameObjects()
+
+		fn009d9e()
+		fn009dde()
+		RenderSprites()
+
+		BlueSpheres.RenderSpheres()
+		fn009d5e()
+		fn009b62()
+
+	#if GAMEAPP
+		BlueSpheres.renderCustomGround()
+		BlueSpheres.renderCustomCharacterShadows()
+	#elif STANDALONE
+		Renderer.setViewport(getScreenExtend(), 0, 320, 224, 0x0000)
+	#endif
+
+		LoadRequiredSpritePatterns()
+		Kosinski.ProcessModules()
+
+		--global.fadeout_countdown
+		if (s16(global.fadeout_countdown) < 0)
+		{
+			global.fadeout_countdown = 2
+			FadePaletteToWhite()
+		}
+
+		if (global.demo_countdown == 0)
+			break
+	}
+}
+
+// Adjust character shadow positions for new screen size
+function void BlueSpheres.renderCustomCharacterShadows()
+{
+	if (Game.getSetting(SETTING_BS_VISUAL_STYLE) & 0x02)
+	{
+		Renderer.drawCustomSprite(getNumPlayers() < 2 ? "bluespheres_shadow_1P_smooth" : "bluespheres_shadow_2P_smooth", 142 + getScreenExtend(), 149 + getScreenHeightExtend(), 0x00, 0, 0x3100)
+	}
+	else
+	{
+		Renderer.drawCustomSprite(getNumPlayers() < 2 ? "bluespheres_shadow_1P_pixel" : "bluespheres_shadow_2P_pixel", 142 + getScreenExtend(), 149 + getScreenHeightExtend(), 0x00, 0, 0x3100)
+	}
+}
+
+
+// Adjust horizon position for new screen size
+function void BlueSpheres.renderCustomGround()
+{
+	BlueSpheres.replacePlaneRendering()
+
+	// Render glow effect for background
+	if (Game.getSetting(SETTING_BS_VISUAL_STYLE) & 0x02)
+	{
+		Renderer.drawSprite("bluespheres_glow_background", getScreenWidth() / 2, 20 + getScreenHeightExtend(), 0x00, 0, 0x2000)
+	}
+
+	// Render our own version of the ground
+	//  -> This only works in combination with a palette set in V-Int, see "fn000c50"
+	string spriteKey1
+	string spriteKey2
+	{
+		Game.setupBlueSpheresGroundSprites()
+
+		u16 px = bluespheres.position.x
+		u16 py = bluespheres.position.y
+		u8 rotation = bluespheres.direction
+		bool isRotating = (rotation & 0x3f) != 0
+		if (isRotating || (rotation & 0x40) == 0)
+			px = (px + 0x80) & 0xff00
+		if (isRotating || (rotation & 0x40) != 0)
+			py = (py + 0x80) & 0xff00
+
+		if (isRotating)
+		{
+			u8 rotationStep = (rotation & 0x3f) / 4
+			spriteKey1 = stringformat("bluespheres_ground_alpha_rotation_0x%02x", rotationStep)
+			spriteKey2 = stringformat("bluespheres_ground_opaque_rotation_0x%02x", rotationStep)
+		}
+		else
+		{
+			u8 movementStep = 0
+			if ((rotation & 0x80) == 0)
+			{
+				movementStep = (0xff - ((rotation & 0x40) ? px : py) & 0xff) / 8
+			}
+			else
+			{
+				movementStep = (((rotation & 0x40) ? px : py) & 0xff) / 8
+			}
+			spriteKey1 = stringformat("bluespheres_ground_alpha_movement_0x%02x", movementStep)
+			spriteKey2 = stringformat("bluespheres_ground_opaque_movement_0x%02x", movementStep)
+		}
+	}
+	Renderer.drawSprite(spriteKey1, 0, 0, 0x100, 0, 0x3000)
+	Renderer.drawSprite(spriteKey2, 0, 0, 0x100, SPRITE_FLAG_FULLY_OPAQUE, 0x3000)		// Draw fully opaque (here meant only as a rendering optimization, primarily for software renderer)
+
+	// Render glow effect on top
+	if (Game.getSetting(SETTING_BS_VISUAL_STYLE) & 0x02)
+	{
+		Renderer.drawSprite("bluespheres_glow_foreground", getScreenWidth() / 2, 30 + getScreenHeightExtend(), 0x00, 0, 0x3100)
+	}
+}
+
+// Adjust sphere rendering for new screen size
+function void BlueSpheres.renderCustomSpheres()
+{
+	u32 ptr = 0x800000
+	Game.writeBlueSpheresData(ptr, 0xfffff100, bluespheres.position.x, bluespheres.position.y, bluespheres.direction)
+
+	u16 count = u16[ptr]
+	ptr += 2
+	for (u16 i = 0; i < count; ++i)
+	{
+		// Read sphere properties
+		u16 px = u16[ptr] + getScreenExtend() - 40
+		u16 py = u16[ptr+2]
+		u16 size = u16[ptr+4]
+		u8 sphereType = u8[ptr+6]
+		ptr += 7
+
+		// Size of sphere (0 = largest at 32x32, 0x0f = smallest at 8x8, the last ones include 3x 2 duplicates, which makes only 13 different sizes in total, with 2 pixels size difference between them)
+		u8 form
+		if (size < 0x1740)
+			form = 0x0f
+		else if (size < 0x18a0)
+			form = 0x0e
+		else if (size < 0x1a10)
+			form = 0x0d
+		else if (size < 0x1b90)
+			form = 0x0c
+		else if (size < 0x1d30)
+			form = 0x0b
+		else if (size < 0x1f00)
+			form = 0x0a
+		else if (size < 0x2100)
+			form = 0x09
+		else if (size < 0x2330)
+			form = 0x08
+		else if (size < 0x25a0)
+			form = 0x07
+		else if (size < 0x2960)
+			form = 0x06
+		else if (size < 0x2c80)
+			form = 0x05
+		else if (size < 0x3180)
+			form = 0x04
+		else if (size < 0x35c0)
+			form = 0x03
+		else if (size < 0x3c80)
+			form = 0x02
+		else if (size < 0x4500)
+			form = 0x01
+		else
+			form = 0x00
+
+		py -= (16 - form) * 2/3 + 1
+
+		// Lift spheres when stage was won
+		py -= bluespheres.lifted_height
+
+		bool behindHorizon = (size < 0x1b00)
+		u16 renderQueue = (behindHorizon ? 0x2000 : 0x9000) + size / 0x100
+		u8 alpha = (sphereType == 0x0a) ? 0xa0 : 0xff
+		u32 fog = clamp(s32(0x100000) / size - 0x68, 0, 0x80) * 0x010101
+
+		D0.u16 = u8(sphereType) * 8
+		A3 = u32[0xffffe480 + D0.u16]
+		D6.u16 = u16[0xffffe480 + D0.u16 + 4]
+
+		D0.u16 = u16[0xffffe480 + D0.u16 + 6]
+		D1 = (D0.u16 & 0x8000) ? 0 : (form * 2)
+		D1.u16 += D0.u16 * 2
+		A3 = tableLookupAddress(A3, D1.s16)
+
+		D1.u16 = u16[A3] - 1	// This is always 0, except for Super Emeralds
+		A3 += 2
+		while (D1.s16 >= 0)
+		{
+			if (Game.getSetting(SETTING_BS_VISUAL_STYLE) & 0x02)
+			{
+				Renderer.drawVdpSpriteWithTint(px + u16[A3+4], py + s8[A3] + getScreenHeightExtend(), u8[A3+1], u16[A3+2] + D6.u16, renderQueue, (0xffffff - fog) + (u32(alpha) << 24), fog)
+			}
+			else
+			{
+				Renderer.drawVdpSprite(px + u16[A3+4], py + s8[A3] + getScreenHeightExtend(), u8[A3+1], u16[A3+2] + D6.u16, renderQueue)
+			}
+
+			A3 += 6
+			--D1.s16
+		}
+	}
+}
+
+// Shift GET BLUE SPHERES and PERFECT text to match screen height changes
+//# address-hook(0x008e5c) end(0x008e8e)
+function void fn008e5c()
+{
+	objA0.box_size.x = 0x80
+	objA0.box_size.y = 0x80
+	objA0.sprite_priority = 0
+	objA0.mapping_offset = 0x008f5e
+	objA0.sprite_attributes = (sprite_attribute.PRIORITY | sprite_attribute.PALETTE.LINE1 | (SpecialStage.TextPromps.targetInVRAM >> 5))
+	objA0.position.x.u16 = 0x120 + getScreenExtend()
+	objA0.position.y.u16 = 0xe8 + getScreenHeightExtend()
+	objA0.value32 = 0xb4
+
+	objA0.update_address = 0x008e94
+	fn008e94()
+}
+
+// Set camera y position for Hidden Palace during Super Emerald stage results to match screen height changes
+//# address-hook(0x02df64) end(0x02e2be)
+function void fn02df64()
+{
+	playMusic(MUSIC_CTRL_FADEOUT)
+
+	u8[0xffffef6e] = global.next_bluespheres
+
+	bool goToNextStage = true
+#if STANDALONE
+	if (Game.getSetting(SETTING_BS_REPEAT_ON_FAIL))
+	{
+		// Do not go to next stage if failed this stage
+		goToNextStage = (bluespheres.stage_exit_state != 0)
+	}
+#endif
+	if (goToNextStage)
+	{
+		// Go the next special stage
+		D0.u8 = global.next_bluespheres
+		D1.u8 = u8[0xffffef70]
+		if (D1.u8 != 0)
+		{
+			D0.u8 = D1.u8 & 0x7f
+		}
+		else
+		{
+			++D0.u8
+			if (D0.u8 >= 7)
+				D0 = 0
+		}
+		global.next_bluespheres = D0.u8
+	}
+
+#if !STANDALONE
+	set_status_register(0x2700)
+#endif
+
+	VDP.Config.setActiveDisplay(false)
+	fn0011ca()
+
+	VDP.Config.enableHInt(false)
+	VDP.Config.setNameTableBasePlaneA(0xc000)
+	VDP.Config.setNameTableBasePlaneB(0xe000)
+	VDP.Config.setVerticalScrolling(false, 0xff)
+	VDP.Config.setRenderingModeConfiguration(false)
+	VDP.Config.setPlayfieldSizeInPixels(512, 256)
+
+	zeroMemory(0xffffac00, 0x400)
+	zeroMemory(0xffffb000, 0x2000)
+
+	u16[0xfffffb00] = 0
+	u32[0xfffffbfc] = 0xfffffb00
+
+	sram.block_interrupts.u16 = 0
+	CheckSaveGameSlotAfterBlueSpheres()
+
+	competition_mode.active = 0
+	u16[0xfffff100] = 0
+	gfx.plane_update_routine = 0
+	hud.dirty.timer = 0
+	global.fade_timer = 0
+	bluespheres.backup.zone_act = global.zone_act
+
+	addPatternLoadingCue(0x02e310)		// Ring sprites + HUD text for bonus tally
+
+	Kosinski.addToDMAQueue(0x0d6a62, 0xb700)		// Common results graphics
+
+	// Choose text: "Super" or "Hyper"
+	if (isMainCharacter(CHARACTER_SONIC))
+	{
+		A1 = (global.super_emeralds < 7) ? 0x15b374 : 0x15b678
+	}
+	else if (isMainCharacter(CHARACTER_TAILS))
+	{
+	#if STANDALONE
+		if (Game.getSetting(SETTING_HYPER_TAILS))
+		{
+			A1 = (global.super_emeralds < 7) ? 0x15b374 : 0x15b678
+		}
+		else
+	#endif
+		{
+			A1 = 0x15b374
+		}
+	}
+	else
+	{
+		A1 = (global.super_emeralds < 7) ? 0x15b4f6 : 0x15b7ea
+	}
+	Kosinski.addToDMAQueue(A1, 0xa1e0)		// "Super" or "Hyper" nameplate appropriate for the character and form
+
+	if (isMainCharacter(CHARACTER_SONIC))
+	{
+		A1 = 0x15b95c
+	}
+	else if (isMainCharacter(CHARACTER_TAILS))
+	{
+		A1 = (global.region_code & 0x80) ? 0x39ab6a : 0x39aa18
+	}
+	else
+	{
+		A1 = 0x0d67f0
+	}
+	Kosinski.addToDMAQueue(A1, 0x9e20)		// Character nameplate
+
+	Kosinski.addToDMAQueue(0x15babe, 0xa460)		// Special Stage results graphics
+
+	vint.update_subroutine = 0x02df62
+
+	while (true)
+	{
+		global.frame_state = 0x1e
+		Kosinski.ProcessDecompressionQueue()
+
+		waitForNextFrame()
+
+		LoadRequiredSpritePatterns()
+		Kosinski.ProcessModules()
+
+		if (kosinski.waiting_modules == 0 && u32[0xfffff680] == 0)
+			break
+	}
+
+#if STANDALONE
+	Renderer.resetSprites()
+#endif
+
+	ResetScoreDisplay()
+	hud.dirty.score = 0x01
+
+	copyMemory(0xfffffc00, 0x02e318, 0x80)
+	copyMemory(0xfffffc80, 0x02e318, 0x80)
+
+#if STANDALONE
+	globalComponentTintColorR = 0xff
+	globalComponentTintColorG = 0xff
+	globalComponentTintColorB = 0xff
+	globalComponentAddedColorR = 0
+	globalComponentAddedColorG = 0
+	globalComponentAddedColorB = 0
+#endif
+
+	fn02e2c0()
+
+	if (global.lock_on_state == 0 && global.sk_bluespheres)
+	{
+		copyMemory(0xfffffc00, 0x02e318, 0x20)
+		copyMemory(0xfffffc20, 0x02e318, 0x20)
+		copyMemory(0xfffffc80, 0x02e318, 0x20)
+		copyMemory(0xfffffca0, 0x02e318, 0x20)
+	#if STANDALONE
+		// This is needed to avoid the red Super Emerald's colors from being corrupted
+		fillMemory_u16(0xfffffc24, 6, 0x0eee)
+	#endif
+
+		fn02e2c0()
+
+		fillMemory_u32(0xfffffc40, 0x40, 0x0ccc0ccc)
+		copyMemory(0xfffffcc0, 0x0a9d5c, 0x40)
+		copyMemory(0xffff8000, 0x0a7924, 0x1000)
+
+		// Load Hidden Palace level blocks and chunks
+		Kosinski.decompress(0x1bfbea, 0xffff0000)	// After this, A1 points to where uncompressed data ends
+		Kosinski.decompress(0x1c71fe, A1)
+		Kosinski.decompress(0x1becf8, 0xffff9000)	// Same here
+		Kosinski.decompress(0x1c30fc, A1)
+
+		// Load Hidden Palace level tiles
+		D4.u16 = u16[0x1bee58]
+		Kosinski.addToDMAQueue(0x1bee58, 0x0000)
+		Kosinski.addToDMAQueue(0x1c3f2c, D4.u16)
+
+		requestLoadingPatterns(0x48)		// HPZ object sprites
+
+		global.zone_act = 0x1701		// Hidden Palace emerald cave
+		camera.position.x.u16 = 0x15a0 - getScreenExtend()
+		camera.position.y.u16 = 0x0240 - getScreenHeightExtend()
+		dynobjects.routine = 0
+
+		DynamicObjectsLoading()
+		camera.position.x.u16 = u16[0x02e398 + u8[0xffffef6e] * 2] - getScreenExtend()
+
+	#if !STANDALONE
+		set_status_register(0x2700)
+	#endif
+		InitLevelDisplay()
+	#if !STANDALONE
+		set_status_register(0x2300)
+	#endif
+
+		if (bluespheres.blue_remaining == 0)
+		{
+			D0.u8 = u8[0xffffef6e] | 0x80
+			u8[0xfffffac0] = D0.u8
+			u8[0xfffffac1] = 0xff
+		}
+	}
+
+	fn01aa6e()
+	u16[0xffffef68] = 0x98
+	u8[0xffffef6c] = 0xff
+	u32[0xffffb940] = 0x02e3b8
+
+	VDP.Config.setActiveDisplay(true)
+
+	while (true)
+	{
+		global.frame_state = 0x08
+		Kosinski.ProcessDecompressionQueue()
+
+		waitForNextFrame()
+
+		++level.framecounter
+		D1.u16 = emerald.animframe + 1
+		if (D1.u16 >= 3)
+			D1 = 0
+		emerald.animframe = D1.u16
+
+		UpdateGameObjects()
+		if (global.lock_on_state == 0 && global.sk_bluespheres)
+		{
+			UpdateLevelDisplay()
+		}
+
+		RenderSprites()
+		LoadRequiredSpritePatterns()
+		Kosinski.ProcessModules()
+
+		if (global.fade_timer > 0)
+		{
+			--global.fade_timer
+			FadeInFromWhite()
+		}
+
+		if (global.game_mode != 0x48)
+			break
+	}
+
+	global.zone_act = bluespheres.backup.zone_act
+}

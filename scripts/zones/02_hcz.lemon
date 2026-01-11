@@ -1,0 +1,102 @@
+// Allow seeing higher in the HCZ1 boss area at larger screen heights.
+// The boss functions fine without this change, but it lets players see the character more
+// when bouncing on the boss or spin dashing up the walls.
+// The boss itself does not need code changes for 240px screen height.
+//# address-hook(0x069eda) end(0x069f5e)
+function void fn069eda()
+{
+	if ((objA0.flags38 & 0x01) == 0)
+	{
+		D0.u16 = 0x0638 - getScreenHeightExtend()
+		if (D0.u16 <= camera.position.y.u16)
+		{
+			objA0.flags38 |= 0x01
+			level.vertical_wrap = D0.u16
+			move_area.bottom.current = D0.u16
+			move_area.bottom.target = D0.u16
+		}
+	}
+
+	move_area.left = camera.position.x.u16
+	D0.u16 = 0x3680 - getScreenExtend()
+	if (camera.position.x.u16 >= D0.u16)
+	{
+		objA0.flags38 |= 0x02
+		move_area.left = D0.u16
+		move_area.right = 0x3680 + getScreenExtend()
+	}
+	if (objA0.flags38 != 0x03)
+		return
+
+	screenmover_target.right = move_area.right
+	u16[A0 + 0x44] = objA0.position.y.u16
+	objA0.update_address = addressof(Object.CountdownAndTrigger)
+	objA0.countdown_value = 120
+	objA0.countdown_callback = 0x069f64
+	playMusic(MUSIC_CTRL_FADEOUT)
+
+	objA0.flags38 |= 0x08
+	loadPaletteLine1(0x06ae56)
+}
+
+// Cover up a brick near the HCZ1 boss area when at wide resolutions that looks incorrect when boss palette loads.
+// There are other bricks nearby that appear wrong or that switch between acts in wider resolutions, but we only fix what is needed for 426x240.
+//# address-hook(0x050b8a) end(0x050b8a)
+function void UpdateLevelTiles.HCZ1()
+{
+	base.UpdateLevelTiles.HCZ1()
+
+	if (getScreenHeightExtend() >= 0)
+	{
+		Renderer.drawCustomSprite("hcz_brick", 0x3630 - camera.foreground.x.u16, 0x0700 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+	}
+}
+
+//# address-hook(0x050e90) end(0x050e98)
+function void UpdateLevelTiles.HCZ2()
+{
+	base.UpdateLevelTiles.HCZ2()
+
+	if (getScreenHeightExtend() >= 0)
+	{
+		Renderer.drawCustomSprite("hcz_brick", 0x0030 - camera.foreground.x.u16, 0x0700 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+	}
+}
+
+// Adjust the HCZ2 boss area boundary to account for screen height.
+// This doesn't affect the boss working, but does keep the player character more visible.
+//# address-hook(0x06aeb6) end(0x06aef8)
+function void fn06aeb6()
+{
+#if STANDALONE
+	// Skip boss in Time Attack
+	if (Game.isTimeAttack())
+	{
+		UnloadObject()
+		return
+	}
+#endif
+
+	A1 = isMainCharacter(CHARACTER_KNUCKLES) ? 0x06aea6 : 0x06ae96
+	if (InitBoss(0x06aecc))
+		return
+
+	objA0.value26 = MUSIC_MAINBOSS
+	StartBossFight()
+
+#if STANDALONE
+	// Expand the boss area to the right if needed
+	level.bossarea.right = max(level.bossarea.right, level.bossarea.left + getScreenExtend() * 2)
+    level.bossarea.top -= getScreenHeightExtend()
+    level.bossarea.bottom -= getScreenHeightExtend()
+#endif
+
+	objA0.update_address = 0x06aefe
+	objA0.countdown_callback = 0x06af04
+
+	requestLoadingPatterns(0x6c)		// Boss sprites
+
+	u16[0xfffffc1e] = 0
+
+	loadPaletteLine1(0x06bf0a)
+}
