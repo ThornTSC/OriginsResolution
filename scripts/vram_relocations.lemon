@@ -56,7 +56,7 @@ function void Invincibility.Update()
 		A1 = A0
 		for (u8 i = 0; i < 4; ++i)
 		{
-			objA1.sprite_attributes == Shield.new_VRAM_target >> 5
+			objA1.sprite_attributes = Shield.new_VRAM_target >> 5
 			A1 += 0x4a
 		}
 	}
