@@ -2,168 +2,9 @@
 //# address-hook(0x01c11e) end(0x01c236)
 function void UpdateCameraPositionY()
 {
-	D0.s16 = char.position.y.u16 - u16[A1] - (getScreenHeightExtend()/2)
-	if (level.vertical_wrap == 0xff00)
-	{
-		D0.s16 &= level.height.bitmask
-	}
-	if (char.flags & char.flag.ROLLING)
-	{
-	#if STANDALONE
-		// Accounting for Tails` smaller rolling box. see: https://s3unlocked.blogspot.com/2017/12/roll-height-bugs-part-1.html
-		D0.s16 -= (char.character == CHARACTER_TAILS) ? 1 : 5
-	#else
-		D0.s16 -= 5
-	#endif
-	}
-
-#if STANDALONE
-	// Prevent the infamous level wrap glitch
-	if (Game.getSetting(SETTING_FIX_GLITCHES) && level.vertical_wrap == 0xff00)
-	{
-		if (D0.s16 > level.height.bitmask / 2)
-		{
-			D0.s16 -= level.height.bitmask
-		}
-	}
-#endif
-
-	D1 = D3.u16
-	if (competition_mode.active)
-		D1.u16 >>= 1
-
-	if (char.flags & char.flag.IN_AIR)
-	{
-		D0.s16 += 0x20 - D1.u16
-		if (D0.s16 < 0)
-		{
-			D1.u16 = 0x1800
-		}
-		else
-		{
-			D0.u16 -= 0x40
-			if (D0.s16 >= 0)
-			{
-				D1.u16 = 0x1800
-			}
-			else if (u8[0xffffee32] != 0)
-			{
-				u8[0xffffee32] = 0
-				D0 = 0
-			}
-			else
-			{
-				u16[A4] = 0
-				return
-			}
-		}
-	}
-	else
-	{
-		D0.s16 -= D1.u16
-		if (D0.s16 == 0)
-		{
-			if (u8[0xffffee32] != 0)
-			{
-				u8[0xffffee32] = 0
-				D0 = 0
-			}
-			else
-			{
-				u16[A4] = 0
-				return
-			}
-		}
-		else
-		{
-		#if !STANDALONE
-			// This check leads to strange camera behavior when looking up/down on (fast) vertically moving object
-			//  -> For example, on the moving ice platform in ICZ 1; this can lead to a vertical wrap glitch
-			//  -> I don't know yet what this check is even for...
-			if (D3.u16 != 0x60)
-			{
-				D1.u16 = 0x200
-			}
-			else
-		#endif
-			if (u8[0xffffee39] != 0)
-			{
-				D1.u16 = 0x1800
-			}
-			else if (abs(s16[A0 + 0x1c]) >= 0x800)
-			{
-				D1.u16 = 0x1800
-			}
-			else
-			{
-				D1.u16 = 0x600
-			}
-		}
-	}
-
-	s16 threshold = (D1.u16 >> 8)
-	if (D0.s16 > threshold)
-	{
-		D1.s32 = D1.s16 << 8
-		D1 += u32[A1]
-		D1 = (D1 << 16) + (D1 >> 16)
-	}
-	else if (D0.s16 < -threshold)
-	{
-		D1.s32 = (-D1.s16) << 8
-		D1 += u32[A1]
-		D1 = (D1 << 16) + (D1 >> 16)
-	}
-	else
-	{
-		D1 = D0.u16
-		D1.u16 += u16[A1]
-	}
-
-	if (D0.s16 < 0)
-	{
-		if (D1.s16 <= s16[A2 + 4])
-		{
-			if (D1.s16 <= -0x100)
-			{
-				D1.u16 &= level.height.bitmask
-			}
-			else
-			{
-				D1.u16 = u16[A2 + 4]
-			}
-		}
-	}
-	else
-	{
-		if (D1.s16 >= s16[A2 + 6])
-		{
-			u16 levelHeight = level.height.bitmask + 1
-			D1.u16 -= levelHeight
-			if (D1.s16 >= 0)
-			{
-				u16[A1] -= levelHeight
-			}
-			else
-			{
-				D1.u16 = u16[A2 + 6]
-			}
-		}
-	}
-
-	D4.u16 = u16[A1]
-	D1 = (D1 << 16) + (D1 >> 16)
-	D3 = D1 - u32[A1]
-	D3 = (D3 >> 8) + (D3 << 24)
-	u16[A4] = D3.u16
-	u32[A1] = D1
-
-	if (competition_mode.active)
-	{
-		D1 = (D1 << 16) + (D1 >> 16)
-		D1.u16 &= level.height.bitmask
-		u16[A1] = D1.u16
-	}
+	char.position.y.u16 -= getScreenHeightExtend()/2
+	base.UpdateCameraPositionY()
+	char.position.y.u16 += getScreenHeightExtend()/2
 }
 
 // Start the camera centered as in the previous function.
@@ -171,261 +12,35 @@ function void UpdateCameraPositionY()
 //# address-hook(0x01be46) end(0x01bfae)
 function void SetupCharacterAtStartPosition()
 {
-	if (checkpoint.number != 0)
+	base.SetupCharacterAtStartPosition()
+	if (checkpoint.number != 0 || isSonicIntro())
+		return
+
+	if (global.zone_act == 0x0000 && !isSonicIntro() && checkpoint.number == 0 && Game.getSetting(SETTING_LEVELLAYOUTS) == 2 && (isMainCharacter(CHARACTER_KNUCKLES) && (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 || Game.isTimeAttack())))
 	{
-		SetupCharacterAtLastCheckpoint()
-		D1.u16 = u16[0xffffb000 + 0x10]
-		D0.u16 = u16[0xffffb000 + 0x14]
+		move_area.bottom.current -= getScreenHeightExtend()
+		move_area.bottom.target -= getScreenHeightExtend()
 	}
-	else
+	else if (global.zone == 0x03 || global.zone == 0x04 || global.zone_act == 0x0501 || global.zone_act == 0x0601 || global.zone_act == 0x0800 || global.zone == 0x09 || global.zone == 0x0b || global.zone == 0x13 || global.zone == 0x16)
 	{
-		A1 = isMainCharacter(CHARACTER_KNUCKLES) ? 0x1e3cd8 : 0x1e3c18		// Get starting positions from respective tables
-		A1 += global.zone * 8 + global.act * 4
-		D1 = u16[A1]		// Get x-position
-		D0 = u16[A1+2]		// Get y-position
-		u16[0xffffb000 + 0x10] = D1.u16		// Set Player 1 x-position
-		u16[0xffffb000 + 0x14] = D0.u16		// Set Player 1 y-position
-
-		if (global.zone_act == 0x0000)
-		{
-			// Angel Island Act 1
-			if (isSonicIntro())
-			{
-				D1.u16 = 0
-				D0.u16 = 0x420
-				u16[0xffffb000 + 0x10] = 0x0040
-				u16[0xffffb000 + 0x14] = 0x0420
-				move_area.left = 0
-				move_area.left.target = 0
-				move_area.left.player2 = 0
-			}
-		#if STANDALONE
-			else if (isMainCharacter(CHARACTER_KNUCKLES) && (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 || Game.isTimeAttack()))
-			{
-				// First set the desired camera position, then character position gets calculated after the if-else-blocks
-				//  -> Camera positions here should be the same as in "fn0634ca"
-				if (Game.getSetting(SETTING_LEVELLAYOUTS) == 2)
-				{
-					u16[0xffffb000 + 0x10] = 0x1830
-					u16[0xffffb000 + 0x14] = 0x0119
-					D1.u16 = 0x1768
-					D0.u16 = 0x0090 - getScreenHeightExtend()
-					move_area.bottom.current = D0.u16
-					move_area.bottom.target = D0.u16
-				}
-				else
-				{
-					D1.u16 = 0x1390
-					D0.u16 = 0x0380
-				}
-				D1.u16 += getScreenWidth() / 2
-				D0.u16 += 96
-			}
-		#endif
-		}
-		else if (global.zone_act == 0x0300)
-		{
-			// Carnival Night Act 1
-			if (isMainCharacter(CHARACTER_KNUCKLES))
-			{
-			#if STANDALONE
-				if (level.start_location == 1)
-				{
-					u16[0xffffb000 + 0x10] = 0x0018
-					u16[0xffffb000 + 0x14] = 0x0600
-					D1.u16 = 0x0018
-					D0.u16 = 0x0600
-				}
-				else
-			#endif
-				{
-					D1.u16 += 0xb0
-				}
-			}
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-		else if (global.zone_act == 0x0301)
-		{
-			// Carnival Night Act 2
-			move_area.bottom.current = 0x0b70 - getScreenHeightExtend()
-			move_area.bottom.target = 0x0b70 - getScreenHeightExtend()
-		}
-		else if (global.zone == 0x04)
-		{
-			// Flying Battery Zone (both acts)
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-		else if (global.zone_act == 0x0500)
-		{
-			// IceCap Act 1
-			if (isMainCharacter(CHARACTER_TAILS))
-			{
-				u16[0xffffb000 + 0x10] = 0x3780
-				u16[0xffffb000 + 0x14] = 0x01e0
-				camera.position.x.u16 = 0x36f0
-				camera.position.y.u16 = 0x0200
-				move_area.left  = 0x35a0
-				move_area.left.target = 0x35a0
-				move_area.left.player2 = 0x35a0
-				level.vertical_wrap = 0x0200
-				move_area.top.target = 0x0200
-				level.vertical_wrap.player2 = 0x0200
-				camera.position.x.u16.player2 = 0x36f0
-				camera.position.y.u16.player2 = 0x0200
-				return
-			}
-		#if STANDALONE
-			else if (isMainCharacter(CHARACTER_KNUCKLES))
-			{
-				if (level.start_location == 1)
-				{
-					// Use Tails' start
-					u16[0xffffb000 + 0x10] = 0x3780
-					u16[0xffffb000 + 0x14] = 0x01e0
-					camera.position.x.u16 = 0x36f0
-					camera.position.y.u16 = 0x0200
-					move_area.left  = 0x35a0
-					move_area.left.target = 0x35a0
-					move_area.left.player2 = 0x35a0
-					level.vertical_wrap = 0x0200
-					move_area.top.target = 0x0200
-					level.vertical_wrap.player2 = 0x0200
-					camera.position.x.u16.player2 = 0x36f0
-					camera.position.y.u16.player2 = 0x0200
-					return
-				}
-			}
-		#endif
-		}
-	#if STANDALONE
-		else if (global.zone_act == 0x0501)
-		{
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-		else if (global.zone_act == 0x0601)
-		{
-			// Launch Base Act 2
-			if (isMainCharacter(CHARACTER_KNUCKLES) && getNumPlayers() == 2)
-			{
-				// Move Knuckles (and camera) a bit to the right to make space for Tails
-				u16[0xffffb000 + 0x10] += 0x10
-				D1.u16 += 0x10
-			}
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-	#endif
-		else if (global.zone_act == 0x0700)
-		{
-			// Mushroom Hill Act 1
-			if (!isMainCharacter(CHARACTER_KNUCKLES) && global.lock_on_state == 0)
-			{
-				// Move camera back to an earlier spawn point for Sonic/Tails with lock-on
-				move_area.left  = 0x00c0
-				move_area.left.target = 0x00c0
-				move_area.left.player2 = 0x00c0
-				D1.u16 = 0x0160
-			}
-		}
-		else if (global.zone_act == 0x0800)
-		{
-			// Sandopolis Act 1
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-		else if (global.zone_act == 0x0900)
-		{
-			// Lava Reef Act 1
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-			if (isMainCharacter(CHARACTER_KNUCKLES))
-			{
-				// Move camera ahead to accommodate for the Knuckles' walk-in intro
-				D1.u16 += 0xb0
-			}
-		}
-		else if (global.zone_act == 0x0901)
-		{
-			// Lava Reef Act 2
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-		else if (global.zone_act == 0x0a01)
-		{
-			// Sky Sanctuary Zone, Knuckles final bosses
-			move_area.bottom.current -= getScreenHeightExtend()/2
-			move_area.bottom.target -= getScreenHeightExtend()/2
-		}
-		else if (global.zone_act == 0x0b00 || global.zone_act == 0x1601)
-		{
-			// Death Egg Act 1, Hidden Palace
-			// Move camera ahead to accommodate for the walk-in intro
-			D1.u16 += 0xb0 + getScreenExtend()
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()				
-		}
-		else if (global.zone_act == 0x0b01)
-		{
-			// Death Egg Act 2
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-		else if (global.zone_act == 0x1701)
-		{
-			// Hidden Palace Zone via giant ring
-			level.vertical_wrap -= getScreenHeightExtend()
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-	#if STANDALONE
-		else if (global.zone == 0x13)
-		{
-			// Gumball Machine:
-			// Do not allow for jumping in first frame
-			u8[0xffffb000 + 0x20] = char.state.STANDING
-			u8[0xffffb000 + 0x2a] |= char.flag.IN_AIR
-			u8[0xffffb04a + 0x20] = char.state.STANDING
-			u8[0xffffb04a + 0x2a] |= char.flag.IN_AIR
-
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-		else if (global.zone == 0x15)
-		{
-			// Slot Machine bonus stage
-			D1.u16 -= getScreenExtend()
-		}
-		else if (global.zone_act == 0x1600)
-		{
-			// Lava Reef Act 2 boss area
-			move_area.bottom.current -= getScreenHeightExtend()
-			move_area.bottom.target -= getScreenHeightExtend()
-		}
-	#endif
+		move_area.bottom.current -= getScreenHeightExtend()
+		move_area.bottom.target -= getScreenHeightExtend()
+	}
+	else if (global.zone_act == 0x0a01)
+	{
+		move_area.bottom.current -= getScreenHeightExtend()/2
+		move_area.bottom.target -= getScreenHeightExtend()/2
+	}
+	else if (global.zone_act == 0x1701)
+	{
+		// Hidden Palace Zone via giant ring
+		level.vertical_wrap -= getScreenHeightExtend()
+		move_area.bottom.current -= getScreenHeightExtend()
+		move_area.bottom.target -= getScreenHeightExtend()
 	}
 
-	D1.s16 = max(D1.s16 - getScreenWidth() / 2, 0)
-	if (competition_mode.active == 0)
-	{
-	#if STANDALONE
-		// Avoid exact tile edges
-		//  -> This was particularly added in to avoid glitches in first pixel row after exiting first Giant Ring in AIZ 2
-		//     (There's probably a better solution, that generally solves this type of glitches when going left in AIZ 2)
-		if ((D1.u16 & 0x0f) == 0)
-			++D1.u16
-	#endif
-		D1.u16 = min(D1.u16, move_area.right)
-	}
-
-	camera.position.x.u16 = D1.u16
-	camera.position.x.u16.player2 = D1.u16
-
-	D0.s16 = clamp(D0.s16 - 96 - (getScreenHeightExtend()/2), 0, s16(move_area.bottom.current))
-	camera.position.y.u16 = D0.u16
-	camera.position.y.u16.player2 = D0.u16
+	camera.position.y.u16 = max(camera.position.y.u16 - getScreenHeightExtend()/2, 0)
+	camera.position.y.u16.player2 = max(camera.position.y.u16.player2 - getScreenHeightExtend()/2, 0)
 }
 
 // When finishing an Act 1 boss and setting new Act 2 camera boundaries,
