@@ -22,7 +22,7 @@ function void fn02d5c6()
 	objA0.position.x.u16 = isLeft ? 0x50 : 0x1f0 + getScreenExtend() * 2
 	objA0.position.y.u16 = 0xf0 + (getScreenHeightExtend()/2)
 	objA0.mapping_offset = 0x02edd0
-	objA0.sprite_attributes = (sprite_attribute.PRIORITY | (Shield.targetInVRAM >> 5))
+	objA0.sprite_attributes = (sprite_attribute.PRIORITY | (Shield.new_VRAM_target >> 5))
 	objA0.sprite_priority = 0
 
 	objA0.update_address = 0x02d612
