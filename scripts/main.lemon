@@ -433,7 +433,7 @@ function void RenderStaticRings()
 // Render the life counter at an appropriate height.
 // Also prevent debug mode from using VRAM to draw its HUD information.
 
-global bool adjust_HUD
+global u8 adjust_HUD
 
 //# address-hook(0x00db44) end(0x00dbb2)
 function void RenderHUD()
@@ -441,25 +441,25 @@ function void RenderHUD()
 	if (debug_mode.state)
 		return
 	
-	adjust_HUD = true
+	adjust_HUD = 1
 	base.RenderHUD()
-	adjust_HUD = false
+	adjust_HUD = 0
+}
+
+function bool HUD.useMobileLivesDisplay()
+{
+	if (adjust_HUD == 1)
+		adjust_HUD = 2
+
+	return base.HUD.useMobileLivesDisplay()
 }
 
 function void HUD.drawSprite(u64 key, u16 px, u16 py, u16 renderQueue)
 {
-	if (adjust_HUD && !HUD.useMobileLivesDisplay())
+	if (adjust_HUD == 2 && !HUD.useMobileLivesDisplay())
 		py += getScreenHeight() - 224
 	
 	base.HUD.drawSprite(key, px, py, renderQueue)
-}
-
-function void HUD.drawSmallDigit(u8 digit, u16 px, u16 py, u16 renderQueue)
-{
-	if (adjust_HUD && !HUD.useMobileLivesDisplay())
-		py += getScreenHeight() - 224
-	
-	base.HUD.drawSmallDigit(digit, px, py, renderQueue)
 }
 
 // Do not update HUD elements in VRAM. We are using that VRAM for shields,
