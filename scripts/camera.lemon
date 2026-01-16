@@ -14,7 +14,11 @@ function void SetupCharacterAtStartPosition()
 {
 	base.SetupCharacterAtStartPosition()
 	if (checkpoint.number != 0 || isSonicIntro())
+	{
+		camera.position.y.u16 = max(camera.position.y.u16 - getScreenHeightExtend()/2, 0)
+		camera.position.y.u16.player2 = max(camera.position.y.u16.player2 - getScreenHeightExtend()/2, 0)
 		return
+	}
 
 	if (global.zone_act == 0x0000 && !isSonicIntro() && checkpoint.number == 0 && Game.getSetting(SETTING_LEVELLAYOUTS) == 2 && (isMainCharacter(CHARACTER_KNUCKLES) && (Game.getSetting(SETTING_AIZ_INTRO_KNUCKLES) != 0 || Game.isTimeAttack())))
 	{

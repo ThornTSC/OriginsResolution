@@ -438,12 +438,12 @@ global u8 adjust_HUD
 //# address-hook(0x00db44) end(0x00dbb2)
 function void RenderHUD()
 {
-	if (debug_mode.state)
-		return
-	
+	u16 debug_temp = debug_mode.state
+	debug_mode.state = 0
 	adjust_HUD = 1
 	base.RenderHUD()
 	adjust_HUD = 0
+	debug_mode.state = debug_temp
 }
 
 function bool HUD.useMobileLivesDisplay()
