@@ -1,5 +1,5 @@
 global u8 ssz_adjust_cloudY
-global u8 ssz_cameraY_copy
+global u16 ssz_cameraY_copy
 
 // Ensure the call to 16x16 block drawing function fn04ee9e() receives the appropriate number of rows of blocks for the screen height
 //# address-hook(0x05734e)
