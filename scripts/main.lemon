@@ -24,9 +24,10 @@ function void ApplyROMManipulations()
 	ROMManipulation.relocateGameTimeOverVRAMLoc()
 }
 
-// We set the screen resolution after the screen has fully faded to black from the previous screen
+// We set the screen resolution after the screen has fully faded to black or white from the previous screen
 // but before any object positions, such as those of title card elements, are set.
-// Note that special stages handle their own screen size setting in SpecialStage() once the screen is white.
+
+// Increase the screen resolution when initializing main game and special stages.
 function void initializeMainGame()
 {
 	set_screen_size = 1
@@ -34,11 +35,28 @@ function void initializeMainGame()
 	set_screen_size = 0
 }
 
+//# address-hook(0x0081c6) end(0x00858e)
+function void SpecialStage()
+{
+	set_screen_size = 1
+	base.SpecialStage()
+	set_screen_size = 0
+}
+
+// Reset to original screen resolution when initializing title screen and blue spheres menu.
 //# address-hook(0x003e32) end(0x004342)
 function void TitleScreen()
 {
 	set_screen_size = -1
 	base.TitleScreen()
+	set_screen_size = 0
+}
+
+//# address-hook(0x04c97e) end(0x04cb18)
+function void fn04c97e()
+{
+	set_screen_size = -1
+	base.fn04c97e()
 	set_screen_size = 0
 }
 
