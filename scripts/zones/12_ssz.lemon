@@ -1,3 +1,6 @@
+global u8 ssz_adjust_cloudY
+global u16 ssz_cameraY_copy
+
 // Ensure the call to 16x16 block drawing function fn04ee9e() receives the appropriate number of rows of blocks for the screen height
 //# address-hook(0x05734e)
 function void fn05734e()
@@ -47,16 +50,15 @@ function void fn05758a()
 		{
 			A6 = 0xffff0000 + D3.u16
 
-			// Track the previous frame's camera y position at all times via unused.player2.item_count.
+			// Track the previous frame's camera y position at all times via ssz_cameraY_copy.
 			// When the camera moves from 0xff01 to 0x0f00 or from 0x0fff to 0x0000, we need to adjust cloudYShift.
-			// Store the state of adjusting or not adjusting cloudYShift in unused.player2.total_rings.
-			// In initializeMainGame, we ensure starting from the final SSZ star post keeps unused.player2.total_rings at 2 instead of resetting to 0.
-			if (camera.position.y.u16 > 0x0800 && camera.position.y.u16 <= 0x0f00 && unused.player2.item_count >= 0xff00)	// moving upward
-				unused.player2.total_rings = 2
-			else if (camera.position.y.u16 <= 0x0800 &&  unused.player2.item_count >= 0x0f00 && unused.player2.total_rings)	// moving downward
-				unused.player2.total_rings = 0
-			s16 cloudYShift = s16(unused.player2.total_rings) * getScreenHeightExtend()
-			unused.player2.item_count = camera.position.y.u16
+			// Store the state of adjusting or not adjusting cloudYShift in ssz_adjust_cloudY.
+			if (camera.position.y.u16 > 0x0800 && camera.position.y.u16 <= 0x0f00 && ssz_cameraY_copy >= 0xff00)	// moving upward
+				ssz_adjust_cloudY = 2
+			else if (camera.position.y.u16 <= 0x0800 &&  ssz_cameraY_copy >= 0x0f00 && ssz_adjust_cloudY)	// moving downward
+				ssz_adjust_cloudY = 0
+			s16 cloudYShift = s16(ssz_adjust_cloudY) * getScreenHeightExtend()
+			ssz_cameraY_copy = camera.position.y.u16
 
 			D3.u16 = (u16[A6 + 0x38] - D0.u16) % (getScreenHeight() + 32)	// formerly & 0xff, which was effectively % 256 or % (224 + 32)
 			D3.u16 += 0x70 - cloudYShift

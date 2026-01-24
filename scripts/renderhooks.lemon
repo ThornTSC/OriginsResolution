@@ -6,68 +6,13 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	// Title card red bar
 	if (objA0.update_address == addressof(TitleCard.RedBarElement.Update))
 	{
-		Renderer.drawCustomSprite("titlecard_redbar", px - 0x20, py - 0x40, 0x00, SPRITE_FLAG_PRIO | SPRITE_FLAG_NO_GLOBAL_TINT, renderQueue)
-
         // Draw additional red to reach the top of the screen. All other parts of the title card are positioned properly by adjusting their actual y positions.
 		Renderer.drawCustomSprite("titlecard_redbar", px - 0x20, py - 0x40 - (getScreenHeightExtend()/2), 0x00, SPRITE_FLAG_PRIO | SPRITE_FLAG_NO_GLOBAL_TINT, renderQueue - 1)
-
-		return true
 	}
 
-    // Characters in special stage
-    if (objA0.update_address == 0x00903e || objA0.update_address == 0x00927a)
+    if (objA0.update_address == 0x00903e || objA0.update_address == 0x00927a || objA0.update_address == 0x009488)
     {
-        u8 character = (objA0.update_address == 0x00927a) ? getSecondCharacter() : getMainCharacter()
-        u8 atex = (character == CHARACTER_TAILS) ? 0x10 : 0x00
-        u64 key = stringformat(stringformat("%s_0x%02x", getCharacterBluesphereSpriteKey(character)), objA0.animation.sprite)
-        if (Renderer.hasCustomSprite(key))
-        {
-            // Check if there's also a custom palette
-            string paletteKey = getCharacterBluespherePaletteKey(character)
-            if (System.hasExternalPaletteData(paletteKey, 0))
-            {
-                atex = 0x40 + character * 0x20
-            }
-        }
-        else
-        {
-            if (character == CHARACTER_SONIC)
-                key = Renderer.setupCustomCharacterSprite(0x0aaa7c, 0x0abe14, objA0.mapping_offset, objA0.animation.sprite, atex)
-            else if (character == CHARACTER_TAILS)
-                key = Renderer.setupCustomCharacterSprite(0x28f95a, 0x2908d2, objA0.mapping_offset, objA0.animation.sprite, atex)
-            else
-                key = Renderer.setupCustomCharacterSprite(0x0abf22, 0x0ad31a, objA0.mapping_offset, objA0.animation.sprite, atex)
-
-            if (ROMDataAnalyser.isEnabled())
-                Renderer.extractCustomSprite(key, getCharacterBluesphereSpriteKey(character), objA0.animation.sprite, atex)
-        }
-        Renderer.drawCustomSprite(key, px, py + getScreenHeightExtend(), atex, prioFlag ? SPRITE_FLAG_PRIO : 0, renderQueue)
-        return true
-    }
-
-    // Tails' tails object in special stage
-    if (objA0.update_address == 0x009488)
-    {
-        u8 atex = 0x10
-        u64 key = stringformat(stringformat("%s_tails_0x%02x", getCharacterBluesphereSpriteKey(CHARACTER_TAILS)), objA0.animation.sprite)
-        if (Renderer.hasCustomSprite(key))
-        {
-            // Check if there's also a custom palette
-            string paletteKey = getCharacterBluespherePaletteKey(CHARACTER_TAILS)
-            if (System.hasExternalPaletteData(paletteKey, 0))
-            {
-                atex = 0x40 + CHARACTER_TAILS * 0x20
-            }
-        }
-        else
-        {
-            key = Renderer.setupCustomCharacterSprite(0x2909e8, 0x291106, objA0.mapping_offset, objA0.animation.sprite, atex)
-
-            if (ROMDataAnalyser.isEnabled())
-                Renderer.extractCustomSprite(key, stringformat("%s_tails", getCharacterBluesphereSpriteKey(CHARACTER_TAILS)), objA0.animation.sprite, atex)
-        }
-        Renderer.drawCustomSprite(key, px, py + getScreenHeightExtend(), atex, prioFlag ? SPRITE_FLAG_PRIO : 0, renderQueue)
-        return true
+        py += getScreenHeightExtend()
     }
 
     // LBZ2 girder when approaching the Death Egg. Only drawn as an image until the graphics are placed in VRAM.
@@ -122,24 +67,18 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
     return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
 }
 
+#if GAMEAPP < 0x24060180
 // Prevent some minor pop-in for SSZ clouds when screen width is greater than 400px.
+// This fix is already implemented in version 0x24060180 of 3-AIR and later, so only include this for earlier versions.
 function bool Standalone.onDrawVdpSpriteCompound(s16 px, s16 py, u8 size, u16 index, u16 renderQueue, u8 spriteCounter)
 {
 	// SSZ clouds effect
-	if (objA0.update_address == 0x057bf6)
+	if (objA0.update_address == 0x057bf6 && getScreenWidth() > 400)
 	{
-		Renderer.drawVdpSpriteWithAlpha(px,   py, size, index, 0xd000, 140)
-		Renderer.drawVdpSpriteWithAlpha(px+1, py, size, index, 0xd000, 144)
-
-		if (getScreenWidth() > 400)
-		{
-			// Draw an additional copy of the cloud one loop further to the right
-			Renderer.drawVdpSpriteWithAlpha(px+512, py, size, index, 0xd000, 140)
-			Renderer.drawVdpSpriteWithAlpha(px+513, py, size, index, 0xd000, 144)
-		}
-
-		return true
+        // Draw an additional copy of the cloud one loop further to the right
+        Renderer.drawVdpSpriteWithAlpha(px+512, py, size, index, 0xd000, 140)
+        Renderer.drawVdpSpriteWithAlpha(px+513, py, size, index, 0xd000, 144)
 	}
-
 	return base.Standalone.onDrawVdpSpriteCompound(px, py, size, index, renderQueue, spriteCounter)
 }
+#endif

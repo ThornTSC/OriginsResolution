@@ -984,6 +984,9 @@ function void fn0500e6()
 	base.fn0500e6()
 }
 
+global u16 aiz_bomber_xoffset
+global u16 aiz_bomber_yoffset
+
 // Have the main blimp controller object render an image of the blimp when the screen height is extended.
 // We also need to shift the blimp back a bit in the original bombing sequence, else it hurts player
 // characters running full speed.
@@ -1041,9 +1044,9 @@ function void fn050390()
 	Renderer.drawCustomSprite("aiz2_bomber", 0x3d80 - u16[0xffffee98] - bomberOffset, 0x0a00 - u16[0xffffee9c], 0x00, SPRITE_FLAG_PRIO, 0x9f7b)
 	if (bomberEnded)
 	{
-		// Leverage some scratch RAM to track the bomber as it goes offscreen
-		unused.player2.total_rings = u16[0xffffee98]
-		unused.player2.item_count = u16[0xffffee9c]
+		// Track the bomber as it goes offscreen
+		aiz_bomber_xoffset = u16[0xffffee98]
+		aiz_bomber_yoffset = u16[0xffffee9c]
 		return
 	}
 
@@ -1112,11 +1115,11 @@ function void fn0506be()
 function void fn050700()
 {
 	if (level.framecounter.low % 2 == 0)
-		unused.player2.total_rings -= 1
+		aiz_bomber_xoffset -= 1
 	if (level.framecounter.low % 4 == 0)
-		unused.player2.item_count += 1
+		aiz_bomber_yoffset += 1
 	u16 bomberOffset = Game.getSetting(SETTING_AIZ_BLIMPSEQUENCE) ? 0 : 20
-	Renderer.drawCustomSprite("aiz2_bomber", 0x3d80 - (unused.player2.total_rings) - bomberOffset, 0x0a00 - (unused.player2.item_count), 0x00, SPRITE_FLAG_PRIO, 0x9f7b)
+	Renderer.drawCustomSprite("aiz2_bomber", 0x3d80 - (aiz_bomber_xoffset) - bomberOffset, 0x0a00 - (aiz_bomber_yoffset), 0x00, SPRITE_FLAG_PRIO, 0x9f7b)
 
 	base.fn050700()
 }
@@ -1125,7 +1128,7 @@ function void fn050700()
 //# address-hook(0x050458) end(0x050476)
 function void fn050458()
 {
-	if ((u16[0xffffeec0] == 0x0c && getScreenHeightExtend() <= 0) || unused.player2.item_count > 0)
+	if ((u16[0xffffeec0] == 0x0c && getScreenHeightExtend() <= 0) || aiz_bomber_yoffset > 0)
 	{
 		UnloadObject()
 	}
