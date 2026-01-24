@@ -20,7 +20,7 @@ function void fn23e756()
 
     if (getScreenHeightExtend() > 0 && camera.background.y.u16 > 0x90)
     {
-        Renderer.drawCustomSprite("atex_rectangle", 0, 0, 0x3a, SPRITE_FLAG_PRIO, 0x0fff)
+        Renderer.drawCustomSprite("atex_rectangle", 0, getScreenHeight()/2, 0x3a, SPRITE_FLAG_PRIO, 0x1001)
     }
 }
 
