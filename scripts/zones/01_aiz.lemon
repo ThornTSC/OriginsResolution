@@ -1,5 +1,7 @@
 // Adjust camera position when Knuckles starts AIZ1 based on screen height
-// as well as screen position after exiting the hollow tree
+// as well as screen position after exiting the hollow tree.
+// Also adjust where red flower color is enforced, as red flowers that were just off screen
+// from the Knuckles start at 400px width now stay visible and red as the screen flashes white.
 //# address-hook(0x01c550) end(0x01c5c4)
 function void fn01c550()
 {
@@ -8,7 +10,7 @@ function void fn01c550()
 
 	level.vertical_wrap = 0
 	u16[0xfffffcde] = 0x20e
-	if ((global.game_mode & 0x80) == 0 && global.fade_timer == 0)
+	if ((global.game_mode & 0x80) == 0 && global.fade_timer == 0 && camera.position.x.u16 >= 0x1c00)
 	{
 		u16[0xfffffc5e] = 0x020e
 	}
