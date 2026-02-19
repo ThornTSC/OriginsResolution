@@ -1,3 +1,4 @@
 {
-    "hcz_brick": { "File": "hcz_brick.bmp" }
+    "hcz_brick": { "File": "hcz_brick.bmp" },
+    "hcz_waterjet_base": { "File": "hcz_waterjet_base.bmp", "Center": "32, 16" }
 }
