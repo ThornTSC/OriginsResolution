@@ -4,9 +4,9 @@
 		"Name": "Origins Screen Resolution",
 		"UniqueID": "thorn-originsresolution",
 		"Author": "Thorn",
-		"Description": "Expands the screen resolution in normal zones and special stages to match the default Origins/RSDK resolution.\n\nThe default screen height is a core assumption made by A.I.R. and many mods. Do NOT expect compatibility with other mods.",
+		"Description": "Expands the screen resolution in normal zones and special stages to match the default Origins/RSDK resolution.",
 		"URL": "https://github.com/ThornTSC/OriginsResolution/releases",
-		"ModVersion": "1.1.1.1",
+		"ModVersion": "1.1.1.2",
 		"GameVersion": "24.02.02.0"
 	},
 	"Settings":
