@@ -1,6 +1,6 @@
 {
-	"bg_dez1": { "File": "dez1_background.bmp", "Center": "216, 0" },
-	"bg_dez2": { "File": "dez2_background.bmp", "Center": "248, 0" },
+	"bg_dez1_origins": { "File": "dez1_background.bmp", "Center": "216, 0" },
+	"bg_dez2_full": { "File": "dez2_background.bmp", "Center": "248, 0" },
 	"dez2boss_front": { "File": "dez2boss_front.bmp", "Center": "176, 120" },
 	"dez2boss_side": { "File": "dez2boss_side.bmp", "Center": "144, 144" },
 	"dez2boss_masteremeraldhatchcover": { "File": "dez2boss_masteremeraldhatchcover.bmp", "Center": "60, 60" },
