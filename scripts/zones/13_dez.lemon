@@ -223,13 +223,8 @@ function void fn07fd9e()
 //# address-hook(0x080de0) end(0x080dfc)
 function void fn080de0()
 {
-	setupObjectAttributesFull(0x0812e0)
-	objA0.update_address = 0x080e02
-
-	objA0.position.x.u16 = 0x70
-	objA0.position.y.u16 = 0xc0 + getScreenHeightExtend()
-	objA0.render_flags |= render_flag.FLIP_X
-	fn080e02()
+	base.fn080de0()
+	objA0.position.y.u16 += getScreenHeightExtend()
 }
 
 // DEZ boss floor collision. The actual art of the floor is baked directly into the background chunks.
