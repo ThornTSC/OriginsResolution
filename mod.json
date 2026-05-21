@@ -6,7 +6,7 @@
 		"Author": "Thorn",
 		"Description": "Expands the screen resolution in normal zones and special stages to match the default Origins/RSDK resolution.",
 		"URL": "https://github.com/ThornTSC/OriginsResolution/releases",
-		"ModVersion": "1.1.1.7",
+		"ModVersion": "1.1.1.8",
 		"GameVersion": "24.02.02.0"
 	},
 	"Settings":
