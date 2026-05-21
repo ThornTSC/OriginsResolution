@@ -939,6 +939,7 @@ function void fn01c746()
 		move_area.top.target = D0.u16
 		camera.update_routine += 2
 		bomberX = 0x8000		// ensure the bomber does not render early by setting a special "do not render" value
+		aiz_bomber_yoffset = 0	// if this is greater than zero from a previous play of this sequence, bomber propellers will instantly despawn
 	}
 }
 
@@ -1218,7 +1219,7 @@ function void fn050390()
 	}
 }
 
-// Align bombs and propellors with the image of the bomber in the original sequence
+// Align bombs and propellers with the image of the bomber in the original sequence
 //# address-hook(0x050586) end(0x0505a2)
 function void fn050586()
 {
@@ -1264,7 +1265,7 @@ function void fn050700()
 	base.fn050700()
 }
 
-// Change when propellors despawn if the screen height is extended
+// Change when propellers despawn if the screen height is extended
 //# address-hook(0x050458) end(0x050476)
 function void fn050458()
 {
