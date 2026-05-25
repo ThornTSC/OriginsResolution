@@ -94,22 +94,6 @@ function void fn00111a()
 	return
 }
 
-//# address-hook(0x085180) end(0x0851ae)
-function void fn085180()
-{
-	u16 dx = (objA0.position.x.u16 & 0xff80) - level.despawn_position.x
-	u16 dy = objA0.position.y.u16 - camera.position.y.u16 + 0x100
-	if (dx <= 0x0280 && dy <= 0x0200 + getScreenHeightExtend())
-	{
-		AddAsDynamicObject()
-		DrawObject()
-	}
-	else
-	{
-		Object.TriggerUnloading()
-	}
-}
-
 // Ensure small sprites from compound objects render when at the bottom of the screen
 function void writeToSpriteTableCompound(u16 renderQueue)
 {

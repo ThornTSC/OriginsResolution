@@ -5,6 +5,7 @@ include camera
 include credits
 include debug_mode
 include level_layouts
+include object_load_unload
 include renderhooks
 include resolution
 include special_stage
@@ -68,6 +69,7 @@ function void FadeOutScreenBlocking()
 		Renderer.setScreenSize(screen_width, 240)
 	else if (set_screen_size == -1)
 		Renderer.setScreenSize(400, 224)
+	object_x_threshold = (getScreenWidth() > 400) ? 0x0300 : 0x0280
 }
 
 //# address-hook(0x003d30) end(0x003d4e)
