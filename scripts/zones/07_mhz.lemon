@@ -190,3 +190,20 @@ function void fn054dbe()
 	fn055008()
 	LoadTileContentDefault()
 }
+
+// Ensure foreground chunks render correctly during transition to FBZ
+//# address-hook(0x076456) end(0x076468)
+function void fn076456()
+{
+	--objA0.countdown_value
+	if (objA0.countdown_value >= 0)
+		return
+
+	TriggerNextZone(0x0400)		// Flying Battery Zone
+	fn054f64()	// added to prevent foreground chunks from moving up one block as zone changes
+	UnloadObject()
+
+#if STANDALONE
+	Game.endSkippableCutscene()
+#endif
+}
