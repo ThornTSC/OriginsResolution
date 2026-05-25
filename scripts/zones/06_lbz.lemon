@@ -150,6 +150,26 @@ function void fn08cdf2()
 	}
 }
 
+// Reload the LBZ1 boss art when entering the building for Sonic/Tails.
+// This function loads the indoor chunks for the boss area building.
+// Without this reload, restarting at the star post and holding right
+// lets the player load the boss art before the secondary act PLC finishes,
+// which overwrites some boss art.
+//# address-hook(0x23e49c) end(0x23e49c)
+function void fn23e49c()
+{
+	base.fn23e49c()
+	if (getScreenWidth() > 400)
+	{
+		// Call for boss art
+		u32 backupA1 = A1
+		u32 backupA2 = A2
+		fn08d0ea()
+		A1 = backupA1
+		A2 = backupA2
+	}
+}
+
 // Adjust the vertical boundaries of the LBZ1 boss area for Knuckles
 //# address-hook(0x08cf80) end(0x08cfac)
 function void fn08cf80()
