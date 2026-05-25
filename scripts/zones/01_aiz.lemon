@@ -1273,14 +1273,35 @@ function void fn050700()
 //# address-hook(0x050458) end(0x050476)
 function void fn050458()
 {
-	if ((u16[0xffffeec0] == 0x0c && getScreenHeightExtend() <= 0) || aiz_bomber_yoffset > 0)
+	if ((u16[0xffffeec0] == 0x0c && getScreenHeightExtend() <= 0) || aiz_bomber_yoffset == 0x0a80)
 	{
 		UnloadObject()
 	}
 	else
 	{
+		if (aiz_bomber_yoffset > 0 && getScreenHeightExtend() > 0)
+		{
+			if (level.framecounter.low % 2 == 0)
+				objA0.position.x.u16 += 1
+			if (level.framecounter.low % 4 == 0)
+				objA0.position.y.u16 -= 1				
+		}
+
 		Object.animationUpdate(0x23c1aa)
 		fn05057a()
 		DrawObject()
+	}
+}
+
+// Move propellers properly as blimp moves off the screen
+//# address-hook(0x050586) end(0x0505a2)
+function void fn050586()
+{
+	base.fn050586()
+
+	if (aiz_bomber_yoffset > 0 && getScreenHeightExtend() > 0)
+	{
+		objA0.position.x.u16 += (0x3cdb - aiz_bomber_xoffset)
+		objA0.position.y.u16 -= (aiz_bomber_yoffset - 0x0a70)
 	}
 }
