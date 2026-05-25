@@ -53,12 +53,21 @@ function void TitleScreen()
 	set_screen_size = 0
 }
 
+// Blue Spheres menu
 //# address-hook(0x04c97e) end(0x04cb18)
 function void fn04c97e()
 {
 	set_screen_size = -1
 	base.fn04c97e()
 	set_screen_size = 0
+}
+
+// Blue Spheres results
+//# address-hook(0x04da7e) end(0x04dde6)
+function void fn04da7e()
+{
+	Renderer.setScreenSize(400, 224)
+	base.fn04da7e()
 }
 
 //# address-hook(0x003be4) end(0x003c02)
