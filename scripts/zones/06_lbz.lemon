@@ -732,6 +732,30 @@ function void fn05480c()
 	}
 }
 
+// When the Death Egg art loads, set a flag that later redraws the foreground so the rocket renders properly.
+//# address-hook(0x01ca52) end(0x01caa8)
+function void fn01ca52()
+{
+	base.fn01ca52()
+
+	if (camera.update_routine == 2)
+		level.trigger0f = 1
+}
+
+// Do the redrawing from the previous function. The flag must be acted on in the frame *after* the art loads,
+// not the same frame, so the redrawing and flag unsetting is before the base function call.
+//# address-hook(0x01ca40) end(0x01ca4a)
+function void UpdateCameraBounds.LBZ2()
+{
+	if (level.trigger0f == 1)
+	{
+		fillPlaneA_Default(camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth(), getScreenHeight())
+		level.trigger0f = 0
+	}
+
+	base.UpdateCameraBounds.LBZ2()
+}
+
 // Adjust vertical screen boundaries for LBZ2 Knuckles punch cutscene through bosses to account for screen height.
 // We also initialize unused.lives_counter.player2 here as a timer for shifting the Death Egg image at the end of the level.
 //# address-hook(0x05449a) end(0x054504)
@@ -852,7 +876,7 @@ function void fn072ffa()
     level.bossarea.bottom -= getScreenHeightExtend()
 }
 
-// Adjust vertical position at which LBZ2 boss 2 is consider off the bottom of the screen based on screen height
+// Adjust vertical position at which LBZ2 boss 2 is considered off the bottom of the screen based on screen height
 //# address-hook(0x072a70) end(0x072ae6)
 function void fn072a70()
 {
@@ -1055,7 +1079,7 @@ function void fn04e8a4()
 #endif
 }
 
-// Initialize a timer we'll use in the next function.
+// Remove Death Egg art in the boss area, as we use images in its place.
 //# address-hook(0x072d24) end(0x072d52)
 function void fn072d24()
 {
@@ -1072,11 +1096,15 @@ function void fn072d24()
 	}
 }
 
-// Draw the Death Egg's underside as images. This handles a widescreen extension of the chunks
+// Draw the Death Egg's first rocket and underside as images. This handles a widescreen extension of the chunks
 // and later allows for handling the Death Egg rising (the platform falling).
 //# address-hook(0x054444) end(0x054448)
 function void UpdateLevelScrolling.LBZ2()
 {
+	// This image stops drawing once the appropriate art is loaded, letting chunk art act normally once it's drawn in.
+	if ((u16[0xffffb010] > 0x3c00 && camera.position.y.u16 >= 0x0500 && camera.update_routine == 0) || level.trigger0f)	// if flying in the Egg Mobile and approaching a rocket without art loaded yet
+		Renderer.drawCustomSprite("lbz2_death_egg_rocket_side", 0x3d80, 0x590 - camera.screenshake.offset - getScreenHeightExtend(), 0, SPRITE_FLAG_WORLDSPACE, 0x2001)
+
 	if (camera.position.x.u16 > 0x4000 && getScreenHeightExtend() > 0)
 	{
 		if (unused.lives_counter.player2 == 0)
