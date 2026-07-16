@@ -180,6 +180,20 @@ function void fn02df64()
 	adjust_cameraY = false
 }
 
+//# address-hook(0x05aa78) end(0x05aa9c)
+function void UpdateLevelScrolling.EC()
+{
+	// Remove some chunks that appear strange at high screen resolutions
+	if (u32[0xffff81b4] != 0x04)
+	{
+		u32[0xffff8180] = 0x04000000
+		u8[0xffff81b4] = 0x04
+		fillPlaneA_Default(camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth(), getScreenHeight())
+	}
+
+	base.UpdateLevelScrolling.EC()
+}
+
 //# address-hook(0x01b690) end(0x01b696)
 function void DynamicObjectsLoading()
 {
