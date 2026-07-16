@@ -10,6 +10,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 		Renderer.drawCustomSprite("titlecard_redbar", px - 0x20, py - 0x40 - (getScreenHeightExtend()/2), 0x00, SPRITE_FLAG_PRIO | SPRITE_FLAG_NO_GLOBAL_TINT, renderQueue - 1)
 	}
 
+    // Special Stage objects
     if (objA0.update_address == 0x00903e || objA0.update_address == 0x00927a || objA0.update_address == 0x009488)
     {
         py += getScreenHeightExtend()
@@ -27,6 +28,14 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
     {
         Renderer.drawCustomSprite("lbz2_girder", px, py, 0x00, prioFlag ? SPRITE_FLAG_PRIO : 0, renderQueue)
         return true
+    }
+
+    // Clouds in the FBZ2 ending area must be drawn a second time to avoid sprites popping in.
+    // These clouds use the update address of DrawObject() directly, so we check their mapping offset instead.
+    if (objA0.mapping_offset == 0x053518)
+    {
+        Renderer.drawCustomSprite(stringformat("fbz_cloud%x", objA0.animation.sprite), px + 512, py, 0x00, 0, renderQueue)
+        return false    // allow the VDP sprite to exist as well
     }
 
     // DEZ2 final boss robot and attached parts
@@ -74,16 +83,32 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
     return base.Standalone.onWriteToSpriteTable(px, py, renderQueue)
 }
 
-// AIZ2 bomber propellers must be rendered in front of the bomber when we draw the bomber as an image.
 function bool Standalone.onDrawVdpSprite(s16 px, s16 py, u8 size, u16 index, u16 renderQueue)
 {
-    // AIZ2 bomber propeller
+    // AIZ2 bomber propellers must be rendered in front of the bomber when we draw the bomber as an image.
 	if (objA0.update_address == 0x050458 && getScreenWidth() > 400)
 	{
         // Adjust the propeller renderqueue to draw it in front of the bomber itself
         Renderer.drawVdpSprite(px, py, size, index, 0x9f80)
         return true
 	}
+
+    // MHZ2 boss foreground pole sprite pieces must be drawn a second time if two poles are visible at once.
+    if (objA0.update_address == 0x05576a && objA0.animation.sprite == 0)    // foreground pole sprite is 0, background is 1
+    {
+	   	Renderer.drawVdpSprite(px, py, size, index, renderQueue)
+	   	Renderer.drawVdpSprite(px + 0x0200, py, size, index, renderQueue)   // draw the next pole
+        return true
+    }
+
+    // Propellers in MHZ-to-FBZ cutscene must be drawn a second time to avoid disappearing sprites,
+    // but only when we reach the edge of the terrain and the propellers have recently moved backward.
+    if (objA0.update_address == 0x05582e && u16[0xffffb010] >= 0x4778 && objA0.position.x.u16 < 0x0080)
+    {
+	   	Renderer.drawVdpSprite(px, py, size, index, renderQueue)
+	   	Renderer.drawVdpSprite(px + 0x0200, py, size, index, renderQueue)   // draw additional propellers
+        return true
+    }
 
     return base.Standalone.onDrawVdpSprite(px, py, size, index, renderQueue)
 }
