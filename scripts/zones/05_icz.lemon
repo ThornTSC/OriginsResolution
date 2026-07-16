@@ -33,6 +33,86 @@ function void fn0718ca()
 	fn071700()
 }
 
+// Ensure the left camera boundary for ICZ2 is correctly set at large screen widths
+//# address-hook(0x053cc4) end(0x053cc8)
+function void InitLevelTiles.ICZ2()
+{
+#if STANDALONE
+	s16 widthCheckDelta = max(getScreenWidth() - 432, 0)
+
+	if (camera.position.x.u16 >= 0x0700 - widthCheckDelta)
+	{
+		move_area.left = 0x0740 - widthCheckDelta
+		camera.position.x.u16 = max(move_area.left, camera.position.x.u16)
+	}
+#endif
+
+	// These seems to fill the patterns on screen initially
+	//  (the same as will be done when scrolling, but here for the whole screen once)
+	Level.GetCameraPosition()
+	Level.InitialTilesFill()
+}
+
+//# address-hook(0x01ca20) end(0x01ca3a)
+function void fn01ca20()
+{
+	s16 widthCheckDelta = max(getScreenWidth() - 432, 0)
+
+	if (camera.position.x.u16 >= 0x0740 - widthCheckDelta && camera.position.y.u16 < 0x0400)
+	{
+		move_area.left = 0x0740 - widthCheckDelta
+		camera.update_routine += 2
+	}
+}
+
+// Ensure the correct palette is loaded when starting ICZ2 from its beginning
+//# address-hook(0x053cd0) end(0x053d50)
+function void InitLevelScrolling.ICZ2()
+{
+	bool indoors = false
+
+	level.scrolling_routine = 0x04
+	if (camera.position.x.u16 < 0x3600)
+	{
+		if (camera.position.y.u16 >= 0x0720)
+		{
+			indoors = true
+		}
+		else if (camera.position.y.u16 >= 0x0580 && camera.position.x.u16 < 0x1000)
+		{
+			indoors = true
+		}
+	}
+
+	u16[0xffffeee8] = indoors * 0xff
+	if (!indoors)
+	{
+		if (camera.position.x.u16 < 0x0700)	// originally 0x0720
+		{
+			fn23e20e()
+		}
+		else
+		{
+			fn23e1aa()
+		}
+		UpdateBackgroundScrolling.ICZ2.Outdoors()
+		D0 = 0
+	}
+	else
+	{
+		fn23e1da()
+		UpdateBackgroundScrolling.ICZ2.Indoors()
+		fn04f2f6()
+	}
+
+	D1 = 0
+	Level.InitialTilesFill()
+
+	A4 = indoors ? 0x23e246 : 0x23e23e
+	A5 = 0xffffa800
+	fn04f0ce()
+}
+
 // For aesthetics (and to align with Origins), align the ICZ2 outdoor background down
 // when the screen height increases and draw a rectangle of extra sky.
 // Unlike the MGZ2 background bottom correction, we aren't viewing transparency here:
@@ -236,4 +316,33 @@ function void fn053e68()
 		level.scrolling_routine -= 4
 	}
 	fn053dca()
+}
+
+// Adjust capsule spawn position in ICZ2 for different screen widths
+//# address-hook(0x071d9e) end(0x071de0)
+function void fn071d9e()
+{
+	objA0.update_address = 0x071de2
+	level.wait_for_results = 0xff
+	level.boss_encounter = 0
+	if (allocDynamicObjectStd())
+	{
+		// Spawn capsule
+		objA1.update_address = 0x086540
+		objA1.position.x.u16 = 0x4560 - getScreenExtend()
+		if (getScreenWidth() >= 432)
+			objA1.position.x.u16 += (getScreenWidth() - 416)
+		objA1.position.y.u16 = 0x06a3
+	}
+
+	D0.u16 = level.bossarea.left + 0x0130
+	screenmover_target.right = D0.u16 + getScreenExtend()
+	if (getScreenWidth() >= 432)
+		screenmover_target.right += (getScreenWidth() - 416)
+
+	if (allocDynamicObjectStd())
+	{
+		// Spawn screen mover for the right border
+		objA1.update_address = 0x084a48
+	}
 }
