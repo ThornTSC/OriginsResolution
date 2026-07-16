@@ -39,8 +39,8 @@ function void fn069eda()
 	loadPaletteLine1(0x06ae56)
 }
 
-// Cover up a brick near the HCZ1 boss area when at wide resolutions that looks incorrect when boss palette loads.
-// There are other bricks nearby that appear wrong or that switch between acts in wider resolutions, but we only fix what is needed for 426x240.
+// Cover up bricks and blocks near the HCZ1 boss area when at wide resolutions
+// that look incorrect when boss palette loads or when screen scrolls after boss.
 //# address-hook(0x050b8a) end(0x050b8a)
 function void UpdateLevelTiles.HCZ1()
 {
@@ -48,7 +48,14 @@ function void UpdateLevelTiles.HCZ1()
 
 	if (getScreenHeightExtend() >= 0)
 	{
+		Renderer.drawCustomSprite("hcz_brick", 0x3620 - camera.foreground.x.u16, 0x0670 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x3620 - camera.foreground.x.u16, 0x06f0 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
 		Renderer.drawCustomSprite("hcz_brick", 0x3630 - camera.foreground.x.u16, 0x0700 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x3650 - camera.foreground.x.u16, 0x0720 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x37d0 - camera.foreground.x.u16, 0x0720 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x3800 - camera.foreground.x.u16, 0x0650 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x3800 - camera.foreground.x.u16, 0x0710 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x3810 - camera.foreground.x.u16, 0x06c0 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
 	}
 }
 
@@ -59,7 +66,14 @@ function void UpdateLevelTiles.HCZ2()
 
 	if (getScreenHeightExtend() >= 0)
 	{
+		Renderer.drawCustomSprite("hcz_brick", 0x0020 - camera.foreground.x.u16, 0x0670 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x0020 - camera.foreground.x.u16, 0x06f0 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
 		Renderer.drawCustomSprite("hcz_brick", 0x0030 - camera.foreground.x.u16, 0x0700 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x0050 - camera.foreground.x.u16, 0x0720 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x01d0 - camera.foreground.x.u16, 0x0720 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x0210 - camera.foreground.x.u16, 0x06c0 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x0200 - camera.foreground.x.u16, 0x0650 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
+		Renderer.drawCustomSprite("hcz_brick", 0x0200 - camera.foreground.x.u16, 0x0710 - camera.foreground.y.u16, 0, SPRITE_FLAG_PRIO, 0x4001)
 	}
 }
 
