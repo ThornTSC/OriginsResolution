@@ -64,15 +64,35 @@ function void fn088864()
 	objA0.countdown_value = 0x0f
 }
 
-// When MGZ2 loads after MGZ1 and the screenmover object starts, redraw the screen to get
-// the chunk to the right of the screen to render the grass on its upper edge.
-//# address-hook(0x084a48) end(0x084a70)
-function void fn084a48()
+// If the screen resolution isn't extremely wide, make sure the first step of the
+// MGZ2 layout renders fully by drawing it offscreen at the MGZ1 boss.
+//# address-hook(0x051124) end(0x051130)
+function void UpdateLevelTiles.MGZ1()
 {
-	base.fn084a48()
+	base.UpdateLevelTiles.MGZ1()
 
-	if (global.zone_act == 0x0201 && move_area.right == 0x6b)	// if the screenmover has only just started moving
-		fillPlaneA_Default(camera.position.x.u16, camera.position.y.u16, getScreenWidth() + 32, getScreenHeight())
+	if (getScreenWidth() <= 442 && u8[0xffff8bc7] != 0x5a)
+	{
+		// Draw the step early
+		u8[0xffff8bc7] = 0x5a
+	}
+}
+
+
+// If the screen resolution is too wide to keep the MGZ1 boss terrain flat without
+// showing the first step in MGZ2, change the layout to remove the step.
+//# address-hook(0x0512be) end(0x0512d8)
+function void UpdateLevelTiles.MGZ2()
+{
+	base.UpdateLevelTiles.MGZ2()
+
+	if (getScreenWidth() > 442 && u8[0xffff890b] != 0x4a)
+	{
+		// Replace the step and shallow slope with a flat section and a steep slope
+		u8[0xffff890b] = 0x4a
+		u8[0xffff890c] = 0x6f
+		fillPlaneA_Default(camera.position.x.u16, camera.position.y.u16, getScreenWidth(), getScreenHeight())
+	}
 }
 
 // Adjust MGZ2 background to
@@ -293,17 +313,17 @@ function void fn05134c()
 			u8[A1]   = 0
 			u8[A1+1] = 0
 			u8[A1+2] = 0
+			u8[A1+3] = 0
 
 			// For our image version of the collapse, we repeat this process for several rows of chunks above the boss area.
 			// We then force a single redraw of the area so only the image graphics remain as visible terrain.
-			if (getScreenHeightExtend() > 0)
-			{
 			#if STANDALONE
 				u8[A1-0x81] = 0	// Need to clear one more chunk on the left for widescreen
 			#endif
 				u8[A1-0x80] = 0
 				u8[A1-0x7f] = 0
 				u8[A1-0x7e] = 0
+				u8[A1-0x7d] = 0
 
 			#if STANDALONE
 				u8[A1-0x101] = 0	// Need to clear one more chunk on the left for widescreen
@@ -311,6 +331,7 @@ function void fn05134c()
 				u8[A1-0x100] = 0
 				u8[A1-0xff] = 0
 				u8[A1-0xfe] = 0
+				u8[A1-0xfd] = 0
 
 			#if STANDALONE
 				u8[A1-0x181] = 0	// Need to clear one more chunk on the left for widescreen
@@ -318,6 +339,7 @@ function void fn05134c()
 				u8[A1-0x180] = 0
 				u8[A1-0x17f] = 0
 				u8[A1-0x17e] = 0
+				u8[A1-0x17d] = 0
 
 			#if STANDALONE
 				u8[A1-0x201] = 0	// Need to clear one more chunk on the left for widescreen
@@ -325,7 +347,7 @@ function void fn05134c()
 				u8[A1-0x200] = 0
 				u8[A1-0x1ff] = 0
 				u8[A1-0x1fe] = 0
-			}
+				u8[A1-0x1fd] = 0
 
 			A1 += D0.u16
 			--D1.s16
@@ -351,10 +373,10 @@ function void fn05134c()
 		//  -> There's an upper and a lower line of these objects
 		if (allocDynamicObjectStd())
 		{
-			D1.u16 = 0x3c90
+			D1.u16 = 0x3c30
 			D2 = 0x05c00790
 			D3 = 0xffffa93c
-			D4 = 9
+			D4 = 15
 			while (D4.s16 >= 0)
 			{
 				objA1.update_address = 0x05180a
@@ -373,6 +395,8 @@ function void fn05134c()
 				D1.u16 += 0x20
 				D2 = (D2 << 16) + (D2 >> 16)
 				D3 += 4
+				if (D3 > 0xffffa960)	// we're beyond the normal range of offsets
+					D3 = 0xffffa93c		// loop from the start
 
 				if (!allocDynamicObjectAfterA1())
 					break
@@ -381,11 +405,8 @@ function void fn05134c()
 			}
 		}
 		// Blank out the layout parts chunks we set to 0 earlier and render an image for the one frame before the collision objects render the image parts.
-		if (getScreenHeightExtend() > 0)
-		{
-			fillPlaneA_Default(camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth(), getScreenHeight())
-			Renderer.drawCustomSprite("mgz2_bossarea", 0x3d20, 0x05c0 - camera.screenshake.offset, 0x00, SPRITE_FLAG_WORLDSPACE | SPRITE_FLAG_PRIO, 0xa001)
-		}
+		fillPlaneA_Default(camera.foreground.x.u16, camera.foreground.y.u16, getScreenWidth(), getScreenHeight())
+		Renderer.drawCustomSprite("mgz2_bossarea", 0x3d20, 0x05c0 - camera.screenshake.offset, 0x00, SPRITE_FLAG_WORLDSPACE | SPRITE_FLAG_PRIO, 0xa001)
 
 		camera.screenshake.state.hi = 0xff
 		u16[0xffffeed8] = 0
@@ -477,7 +498,7 @@ function void fn05180a()
 	D4.u16 = objA0.position.x.u16
 	CheckCharacterOnClimbableObject()
 
-	if (u16[A0 + 0x2e] == 0x05c0 && getScreenHeightExtend() > 0)
+	if (u16[A0 + 0x2e] == 0x05c0)
 	{
 		Renderer.drawCustomSprite(stringformat("mgz2_bossarea_%x", objA0.position.x.u16), objA0.position.x.u16, u16[A0 + 0x2e] + u16[u32[A0 + 0x30]] - camera.screenshake.offset, 0x00, SPRITE_FLAG_WORLDSPACE | SPRITE_FLAG_PRIO, 0xa001)
 	}
