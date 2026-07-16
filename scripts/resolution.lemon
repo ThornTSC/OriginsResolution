@@ -1,9 +1,9 @@
-// This function would control the height toggle if needed,
-// or could be renamed and configured to accommodate other heights.
-// For this mod, we only care to have the RSDK height, so it always returns true.
 function bool useRSDKheight()
 {
-    return true
+	if (getScreenHeight() == 240)
+    	return true
+	else
+		return false
 }
 
 function s16 getScreenHeightExtend()

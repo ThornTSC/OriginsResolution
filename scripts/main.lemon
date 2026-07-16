@@ -1,5 +1,9 @@
+global u8 res_preset
 global u16 screen_width
+global u16 screen_height
+global bool blue_sphere_safe
 global s8 set_screen_size
+global u8 HUD_position
 
 include camera
 include credits
@@ -12,6 +16,32 @@ include special_stage
 include vram_relocations
 include objects/?
 include zones/?
+
+///////////////////////////
+// Choose new resolution //
+///////////////////////////
+
+function void SetResolution()
+{
+	SetResolution(0)
+}
+
+function void SetResolution(bool enforceSafe)
+{
+	constant array<u16> preset_xres =
+	{
+		320, 320, 358, 384, 400, 424, 426, 496, 496
+	}
+	constant array<u16> preset_yres =
+	{
+		224, 240, 224, 240, 224, 240, 240, 224, 240
+	}
+
+	u16 xres = (res_preset) ? preset_xres[res_preset - 1] : screen_width
+	u16 yres = (res_preset) ? preset_yres[res_preset - 1] : screen_height
+
+	Renderer.setScreenSize((enforceSafe && blue_sphere_safe) ? (xres & 0xfffd) : xres, yres)
+}
 
 ////////////////////////////
 // Display new resolution //
@@ -74,8 +104,8 @@ function void fn04da7e()
 function void FadeOutScreenBlocking()
 {
 	base.FadeOutScreenBlocking()
-	if (set_screen_size == 1 && s16(global.rolling_demo) >= 0 && useRSDKheight() && !competition_mode.active)
-		Renderer.setScreenSize(screen_width, 240)
+	if (set_screen_size == 1 && s16(global.rolling_demo) >= 0 && !competition_mode.active)
+		SetResolution()
 	else if (set_screen_size == -1)
 		Renderer.setScreenSize(400, 224)
 	object_x_threshold = (getScreenWidth() > 400) ? 0x0300 : 0x0280
@@ -85,8 +115,8 @@ function void FadeOutScreenBlocking()
 function void FadeScreenToWhiteBlocking()
 {
 	base.FadeScreenToWhiteBlocking()
-	if (set_screen_size == 1 && s16(global.rolling_demo) >= 0 && useRSDKheight() && !competition_mode.active)
-		Renderer.setScreenSize(screen_width, 240)
+	if (set_screen_size == 1 && s16(global.rolling_demo) >= 0 && !competition_mode.active)
+		SetResolution(true)	// set safe resolution flag to true for special stages
 }
 
 // Fix the Knuckles demo. With the extra screen size, the dragonfly spawns slightly earlier which causes
@@ -485,6 +515,14 @@ function bool HUD.useMobileLivesDisplay()
 
 function void HUD.drawSprite(u64 key, u16 px, u16 py, u16 renderQueue)
 {
+	if (global.game_mode != 0x48)
+	{
+		if ((HUD_position == 1 || HUD_position == 3) && py <= 40 && px >= 56 && (Mods.isModActive("SandoHundo Helper") || px <= 104))	// Origins S3&K or hybrid position
+			px += 8
+		if (HUD_position >= 2)	// Origins non-S3&K or hybrid position
+			py += (py >= getScreenHeight() - 40) ? -4 : (py <= 40) ? 4 : 0
+	}
+	
 	if (adjust_HUD == 2 && !HUD.useMobileLivesDisplay())
 		py += getScreenHeight() - 224
 	
