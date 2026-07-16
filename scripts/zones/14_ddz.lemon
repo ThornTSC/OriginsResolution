@@ -1,45 +1,12 @@
 // Adjust initial lower screen boundary and player character spawn position
 // to account for altered screen heights.
-// Also do not set the ring counter to 50 at the start of DDZ in Original Mode.
 //# address-hook(0x081554) end(0x0815fc)
 function void fn081554()
 {
-	objA0.base_state = 0x02
-	u16[0xfffffa8e] = A0.u16
-	objA0.countdown_value = 0x17
-	objA0.velocity.x = 0x0400
-	player1.camera_lock = 0xff
-	level.boss_encounter = 1
-	u32[0xfffffa82] = 0x010000
-	u32[0xfffffa8a] = 0x0800
-
-	A1 = 0xffffb000
-	u8[A1 + 0x0a] |= 0x80
-	objA1.state = char.state.ROLLING
-	u8[A1 + 0x2a] = 0
-	u8[A1 + 0x2e] = (control_flag.DISABLE_INTERACTION | control_flag.DISABLE_UPDATE)
-	objA0.position.x.u16 = camera.position.x.u16 - 0x20
-	objA0.position.y.u16 = camera.position.y.u16 + 0x20 + getScreenHeightExtend()/2
-
-	copyMemory(0xfffffab0, 0x081602, 0x08)
-	level.vertical_wrap = 0
-	move_area.bottom.current = 0x0120 - getScreenHeightExtend()
-	move_area.bottom.target = 0x0120 - getScreenHeightExtend()
-
-	A1 = 0xffffb04a
-	zeroMemory(0xffffb04a, 0x48)
-
-	if (allocDynamicObjectStd())
-	{
-		objA1.update_address = 0x082722
-	}
-
-	Kosinski.addToDMAQueue(0x18322a, 0x5b60)		// Boss sprites, missiles and rocks, etc.
-
-#if STANDALONE
-	// Start with 50 rings now already, that looks better and prevents an unnecessary music tempo change
-	ring_counter = 50
-#endif
+	base.fn081554()
+	level.bossarea.bottom += getScreenHeightExtend()	// sets the amount of vertical movement allowed relative to the screen boundary
+	move_area.bottom.current -= getScreenHeightExtend()
+	move_area.bottom.target -= getScreenHeightExtend()
 }
 
 // Adjust a tile loading function to account for altered screen heights
@@ -57,6 +24,55 @@ function void fn05961e()
 	D1.u16 = u16[0xffffee98]
 	D6 = (getScreenWidth() + 31) / 16
 	LoadTileContentInDirY()
+}
+
+// Adjust how far the first boss falls after defear to account for altered screen heights
+//# address-hook(0x081958) end(0x0819fa)
+function void fn081958()
+{
+	--u16[A0 + 0x3a]
+	if (s16[A0 + 0x3a] < 0)
+	{
+		u16[A0 + 0x3a] = 0x59
+		--objA0.value39
+		if (s8(objA0.value39) >= 0)
+		{
+			A1 = 0xfffffc40
+			D0 = 0x0f
+			D1 = 0x0e
+			D2 = 0xffffffe0
+			while (D0.s16 >= 0)
+			{
+				FadeOutColorUniform()
+				--D0.s16
+			}
+		}
+	}
+
+	playSoundRepeatedly(0x6f)
+	D2.u16 = 0x0160
+	D3.u16 = 0x0130
+	fn0830c0()
+	UpdateMovementStraightSimple()
+
+	D0.u16 = move_area.bottom.current + 0xd0 + getScreenHeightExtend()
+	if (D0.u16 >= objA0.position.y.u16)
+		return
+
+	objA0.base_state = 0x0a
+	objA0.flags38 |= 0x30
+	objA0.countdown_value = 0x1f
+	playSound(0x4e)
+
+	if (allocDynamicObjectStd())
+	{
+		objA1.update_address = 0x083108
+	}
+
+	copyMemory(0xfffffc40, 0x0a999c, 0x20)
+	copyMemory(0xfffffc80, 0xfffffc00, 0x80)
+
+	Kosinski.addToDMAQueue(0x182be6, 0x9a00)			// Master Emerald sprite tiles
 }
 
 // Adjust escaping Eggman robot screen boundary to account for altered screen heights
