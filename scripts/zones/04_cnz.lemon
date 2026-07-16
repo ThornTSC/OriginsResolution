@@ -44,10 +44,17 @@ function void UpdateBackground.CNZ1()
 //# address-hook(0x06d99c) end(0x06d9fa)
 function void fn06d99c()
 {
-	D0.u16 = 0x31e0
-	if (D0.u16 > camera.position.x.u16)
+	u16 leftScreenBorder = 0x31e0
+#if STANDALONE
+	// Properly center the area in ultrawide resolutions
+	if (getScreenWidth() > 448)
+		leftScreenBorder -= (getScreenWidth() - 448) / 2
+#endif
+
+	if (camera.position.x.u16 < leftScreenBorder)
 		return
 
+	D0.u16 = leftScreenBorder
 	screenmover_target.right = move_area.right
 	level.vertical_wrap = 0x01c0
 	move_area.left = D0.u16
