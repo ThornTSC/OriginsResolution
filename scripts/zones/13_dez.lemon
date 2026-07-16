@@ -5,7 +5,23 @@ function void UpdateLevelScrolling.DEZ1()
 	#if STANDALONE
 		// Draw our own widescreen version of the background
 		Renderer.enableDefaultPlane(0, false)
-		Renderer.drawCustomSprite("bg_dez1_origins", getScreenWidth()/2, 0, 0, SPRITE_FLAG_FULLY_OPAQUE, 0x1100)
+		// Renderer.drawCustomSprite("bg_dez1_origins", getScreenWidth()/2, 0, 0, SPRITE_FLAG_FULLY_OPAQUE, 0x1100)
+		u16 screenCenter = min(getScreenWidth()/2, 216)
+		Renderer.drawCustomSprite("bg_dez1_tower", getScreenWidth()/2, 0, 0, SPRITE_FLAG_FULLY_OPAQUE, 0x1102)
+
+		// Draw at least one column of the most distant background on each side of center.
+		Renderer.drawCustomSprite("bg_dez1_distant", getScreenWidth()/2 - 56, 0, 0, SPRITE_FLAG_FULLY_OPAQUE, 0x1100)
+		Renderer.drawCustomSprite("bg_dez1_distant", getScreenWidth()/2 + 56, 0, 0, SPRITE_FLAG_FLIP_X | SPRITE_FLAG_FULLY_OPAQUE, 0x1100)
+
+		// Draw additional needed columns
+		for (u16 px = getScreenWidth()/2 - 72; px > 144; px -= 16)
+		{
+			Renderer.drawCustomSprite("bg_dez1_distant", px, 0, 0, SPRITE_FLAG_FULLY_OPAQUE, 0x1100)
+			Renderer.drawCustomSprite("bg_dez1_distant", getScreenWidth() - px, 0, 0, SPRITE_FLAG_FLIP_X | SPRITE_FLAG_FULLY_OPAQUE, 0x1100)
+		}
+		u16 sideOffset = min(getScreenWidth()/2 - 140, 76)
+		Renderer.drawCustomSprite("bg_dez1_side", sideOffset, 0, 0, SPRITE_FLAG_FULLY_OPAQUE, 0x1101)
+		Renderer.drawCustomSprite("bg_dez1_side", getScreenWidth() - sideOffset, 0, 0, SPRITE_FLAG_FLIP_X | SPRITE_FLAG_FULLY_OPAQUE, 0x1101)
 	#endif
 
 	call 0x0593a0 + level.scrolling_routine
