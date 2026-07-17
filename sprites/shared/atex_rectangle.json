@@ -1,3 +1,4 @@
 {
-    "atex_rectangle": { "File": "atex_rectangle.bmp" }
+    "atex_rectangle": { "File": "atex_rectangle.bmp" },
+    "atex_rectangle_80x16": { "File": "atex_rectangle.bmp", "Rect": "0, 0, 80, 16" }
 }
