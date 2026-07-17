@@ -675,9 +675,19 @@ function void fn080e2c()
 				if (allocDynamicObjectStd())
 				{
 					objA1.update_address = 0x01ec18
-					objA1.position.x.u16 = u16[address + 0x2e] + 0xb8
+					objA1.position.x.u16 = u16[address + 0x2e] + 0xa0 + getScreenExtend()	// 0xb8
 					objA1.position.y.u16 = 0x0080 + getScreenHeightExtend()
 					objA1.subtype2c = 0x3f
+
+					// Place main character in a safe position if necessary.
+					if (u16[0xffffb010] < objA1.position.x.u16 + 0x28)
+					{
+						u16[0xffffb010] = objA1.position.x.u16 + 0x28
+					}
+					if (u16[0xffffb014] > camera.position.y.u16 + getScreenHeight() - 24)
+					{
+						u16[0xffffb010] = camera.position.y.u16 + getScreenHeight() - 24
+					}
 				}
 				break
 			}
