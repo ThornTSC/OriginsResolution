@@ -1542,6 +1542,29 @@ function void fn0418e4()
 	}
 }
 
+// SOZ sand slide block platforms
+//# address-hook(0x040276) end(0x0402c6)
+function void fn040276()
+{
+	objA0.mapping_offset = 0x04043a
+	objA0.sprite_attributes = (sprite_attribute.PALETTE.LINE2 | 0x03c0)
+	objA0.render_flags |= render_flag.WORLD
+	objA0.box_size.x = 0x10
+	objA0.box_size.y = 0x0c
+	objA0.sprite_priority = 0x0200
+
+	D0 = objA0.subtype2c * 8
+	objA0.position.x.u16 += D0.u16
+	u16[A0 + 0x44] = objA0.position.x.u16
+	u16[A0 + 0x46] = objA0.position.y.u16
+	u16[A0 + 0x30] = u16[A0 + 0x44]
+	D0.u16 = (D0.u16 & 0xff80) + object_x_threshold + 0x80
+	objA0.value32 = D0.u16
+
+	objA0.update_address = 0x0402cc
+	fn0402cc()
+}
+
 // SOZ swinging platform
 //# address-hook(0x0414fe) end(0x041546)
 function void fn0414fe()
