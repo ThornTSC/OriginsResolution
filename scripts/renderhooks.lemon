@@ -32,7 +32,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 
     // Clouds in the FBZ2 ending area must be drawn a second time to avoid sprites popping in.
     // These clouds use the update address of DrawObject() directly, so we check their mapping offset instead.
-    if (objA0.mapping_offset == 0x053518)
+    if (objA0.mapping_offset == 0x053518 && objA0.animation.sprite != 0)
     {
         Renderer.drawCustomSprite(stringformat("fbz_cloud%x", objA0.animation.sprite), px + 512, py, 0x00, 0, renderQueue)
         return false    // allow the VDP sprite to exist as well
