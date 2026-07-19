@@ -28,7 +28,7 @@ function void fn01c2b0()
 	Kosinski.decompress(D0, 0xffff0000)
 
 	D0 = u32[A2+20] & 0x00ffffff
-    if (global.zone_act == 0x1600 && getScreenHeightExtend() >= 0x10)		    // get new chunks from ROM injection location for LRZ2 boss with raised screen height
+    if (global.zone_act == 0x1600 && getScreenWidth() > 400)				    // get new chunks from ROM injection location for LRZ2 boss with raised screen height
     {
         Kosinski.decompress(0x2d1e58, A1)										// decompress them to their proper RAM
     }
@@ -103,7 +103,7 @@ function void fn01c2b0()
 function void fn01c362()
 {
 	base.fn01c362()
-	if (global.zone_act == 0x1600 && getScreenHeightExtend() >= 0x10)
+	if (global.zone_act == 0x1600 && getScreenWidth() > 400)
 		System.loadExternalRawData("LRZ2BossLayout", 0xffff8000)
 	else if (global.zone_act == 0x1700 && getScreenHeightExtend() >= 0x10)
 		System.loadExternalRawData("DEZFinalBossLayout", 0xffff8000)
