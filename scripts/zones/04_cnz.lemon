@@ -40,6 +40,18 @@ function void UpdateBackground.CNZ1()
 	u16[A1-=2] = D0.u16
 }
 
+// Move characters into the CNZ1 boss area if they are in the entryway
+// when vertical scrolling starts to prevent softlocks.
+//# address-hook(0x052020) end(0x052046)
+function void fn052020()
+{
+	base.fn052020()
+	if (u16[0xffffb010] < 0x320a)
+		u16[0xffffb010] = 0x320a
+	if (u16[0xffffb05a] != 0 && u16[0xffffb05a] < 0x320a)
+		u16[0xffffb05a] = 0x320a
+}
+
 // Adjust the lower screen boundary during the CNZ1 boss to match screen height changes
 //# address-hook(0x06d99c) end(0x06d9fa)
 function void fn06d99c()
