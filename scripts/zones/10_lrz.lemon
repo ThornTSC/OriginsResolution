@@ -260,6 +260,20 @@ function void GenericObject.Init()
 		objA0.box_size.y = 0x30
 }
 
+// Alter an A.I.R. check to display the LRZ2 background Death Egg to accommodate ultrawide resolutions
+//# address-hook(0x057082) end(0x05711c)
+function void UpdateBackground.LRZ2()
+{
+	base.UpdateBackground.LRZ2()
+
+	objA1.position.x.u16 = 0x1078 - u16[0xffffa804] + (getScreenExtend() / 4)
+
+	// This check is important so that Death Egg patterns don't get loaded too early;
+	//  they interfere with sprites around the spinning cylinder
+	if (objA1.position.x.u16 >= 0x300)	// 0x260 in base A.I.R.
+		objA1.position.x.u16 = 0
+}
+
 // Reposition Death Egg eye flashing effect to light LRZ2 boss area on fire based on screen height
 //# address-hook(0x0793e2) end(0x0793fe)
 function void fn0793e2()
