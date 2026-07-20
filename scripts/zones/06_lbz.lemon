@@ -150,6 +150,17 @@ function void fn08cdf2()
 	}
 }
 
+// If the Eggman object DOES control the LBZ1 boss spawning for Sonic or Tails,
+// make sure the left camera boundary is set correctly at ultrawide resolutions.
+// This function is run while Eggman flies straight up to put the boss's container
+// in the correct position.
+//# address-hook(0x08cce8) end(0x08cd2a)
+function void fn08cce8()
+{
+	base.fn08cce8()
+	move_area.left = min(0x3da0, move_area.left + 2)
+}
+
 // Reload the LBZ1 boss art when entering the building for Sonic/Tails.
 // This function loads the indoor chunks for the boss area building.
 // Without this reload, restarting at the star post and holding right
