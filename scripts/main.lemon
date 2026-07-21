@@ -53,6 +53,7 @@ function void ApplyROMManipulations()
 
 	ROMManipulation.ScreenHeight()
 	ROMManipulation.relocateGameTimeOverVRAMLoc()
+	ROMManipulation.adjustLRZ1LavaBoundary()
 }
 
 // We set the screen resolution after the screen has fully faded to black or white from the previous screen

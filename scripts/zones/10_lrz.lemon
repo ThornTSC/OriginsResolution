@@ -54,7 +54,7 @@ function void UpdateLevelScrolling.LRZ1()
 	base.UpdateLevelScrolling.LRZ1()
 
 	// Set and remove rising lava chunks
-	if (camera.position.x.u16 > 0x2400)
+	if (camera.position.x.u16 > 0x2400 && u16[0xffff89f6] != 0)
 	{
 		u16[0xffff89f6] = 0
 		u32[0xffff89f8] = 0
@@ -63,15 +63,24 @@ function void UpdateLevelScrolling.LRZ1()
 		u32[0xffff8a38] = 0
 		u32[0xffff8a3c] = 0
 	}
-	else
+	else if (u16[0xffff89f6] != 0xfcfc)
 	{
-		u16[0xffff89f6] = 0xfc
+		u16[0xffff89f6] = 0xfcfc
 		u32[0xffff89f8] = 0xfcfcfcfc
 		u32[0xffff89fc] = 0xfcfcfcfc
-		u16[0xffff8a36] = 0xfc
-		u32[0xffff8a38] = 0xfcfcfcfc
-		u32[0xffff8a3c] = 0xfcfcfcfc
+		u16[0xffff8a36] = 0xffff
+		u32[0xffff8a38] = 0xffffffff
+		u32[0xffff8a3c] = 0xffffffff
 	}
+}
+
+// Adjust the LRZ1 lava rising/falling boundary check to include the star post
+// just after it. This is a base S3&K bug, but it could easily be blamed on
+// this mod if a player doesn't check A.I.R. or S3&K after seeing it.
+function void ROMManipulation.adjustLRZ1LavaBoundary()
+{
+	u16[0x056f92] = 0x2160
+	u16[0x056f98] = 0x08c0
 }
 
 // The heat haze effect data is only 0x200 bytes long and repeats every 0x40 bytes.
