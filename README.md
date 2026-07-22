@@ -1,2 +1,2 @@
 # OriginsResolution
-A mod to play Sonic 3 A.I.R. at Sonic Origins or Sonic 1 Forever resolutions
+A mod to play Sonic 3 A.I.R. with 240-pixel screen height, matching Sonic Origins and other RSDK projects
