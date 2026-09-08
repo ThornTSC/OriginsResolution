@@ -110,6 +110,13 @@ function bool Standalone.onDrawVdpSprite(s16 px, s16 py, u8 size, u16 index, u16
         return true
     }
 
+	// FBZ2 miniboss laser beam is not long enough to reach the screen bottom when the screen height is extended.
+	if ((objA0.update_address == 0x070220 || (objA0.update_address == 0x08488a && objA0.countdown_callback == 0x0702d6)) && getScreenHeight() > 224)
+	{
+		Renderer.drawVdpSprite(px, py, size, index, renderQueue)
+	   	Renderer.drawVdpSprite(px, py + 192, size, index, renderQueue)   // draw additional beam length
+	}
+
     return base.Standalone.onDrawVdpSprite(px, py, size, index, renderQueue)
 }
 
