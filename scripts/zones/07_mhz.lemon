@@ -111,6 +111,14 @@ function void fn075220()
 	loadPaletteLine1(0x075f28)
 }
 
+// Adjust where pollen particles spawn as cutscene Knuckles uses his switch
+//# address-hook(0x063324) end(0x06336e)
+function void fn063324()
+{
+	base.fn063324()
+	objA0.position.y.u16 += getScreenHeightExtend()
+}
+
 // Alter move_area.bottom and level.vertical_wrap values in MHZ2 in accordance with the new screen height
 //# address-hook(0x054dbe) end(0x054e82)
 function void fn054dbe()
