@@ -649,7 +649,7 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
 	// Debug / Spilled ring
 	if ((LRZ2_boss_lava_override && global.zone_act == 0x1600 && level.scrolling_routine >= 0x0c) && (objA0.update_address == 0x01a51a || objA0.update_address == 0x01a64a || objA0.update_address == 0x01a662) && objA0.base_state == 0x02)
 	{
-		if renderQueue < 0x9f00
+		if (renderQueue < 0x9f00)
 			return base.Standalone.onWriteToSpriteTable(px, py, 0x9f00)
 	}
 
