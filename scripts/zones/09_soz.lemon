@@ -199,3 +199,31 @@ function void fn055c84()
 	u16[0xffffeec6] = 0
 	level.scrolling_routine = 0
 }
+
+// Adjust camera position of act transition cutscene based on screen width
+//# address-hook(0x0778f2) end(0x077964)
+function void fn0778f2()
+{
+	base.fn0778f2()
+
+	// If the screen mover has just loaded, set the act transition camera and chunks correctly
+	if (objA1.update_address == 0x084a48)
+	{
+ 		screenmover_target.right += getScreenExtend()/2
+		u8[0xffff8b0b] = 0x12
+		u8[0xffff8bbf] = 0x12
+		u8[0xffff8c73] = 0x12
+		u8[0xffff8d27] = 0x12
+		u8[0xffff8133] = 0x12
+		u8[0xffff81e7] = 0x12
+		u8[0xffff829b] = 0x12
+		u8[0xffff834f] = 0x12
+		u8[0xffff8403] = 0x12
+		u8[0xffff84b7] = 0x12
+		u8[0xffff856b] = 0x12
+		u8[0xffff861f] = 0x12
+		u8[0xffff86d3] = 0x12
+		u8[0xffff8787] = 0x12
+		u8[0xffff883b] = 0x12
+	}
+}
