@@ -38,6 +38,15 @@ function bool Standalone.onWriteToSpriteTable(s16 px, s16 py, u16 renderQueue)
         return false    // allow the VDP sprite to exist as well
     }
 
+	// Draw debug/spilled rings in the LRZ2 boss area in front of the new lava rendering
+	if ((LRZ2_boss_lava_override && global.zone_act == 0x1600 && level.scrolling_routine >= 0x0c) && (objA0.update_address == 0x01a51a || objA0.update_address == 0x01a64a || objA0.update_address == 0x01a662) && objA0.base_state == 0x02)
+	{
+		if (renderQueue < 0x9f00)
+			return base.Standalone.onWriteToSpriteTable(px, py, 0x9f00)
+        else
+            return false
+	}
+
     // DEZ2 final boss robot and attached parts
     if (objA0.update_address == 0x07fd68)
     {
