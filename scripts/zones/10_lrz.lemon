@@ -48,6 +48,7 @@ function void RenderLevelSprites.LRZ()
 
 // Remove the rising/falling lava chunks from the LRZ1 background when near the boss,
 // else they render over the foreground.
+// Also ensure the camera y position is correct if Stone 3 A.I.R. is active.
 //# address-hook(0x056bba) end(0x056bbe)
 function void UpdateLevelScrolling.LRZ1()
 {
@@ -75,6 +76,12 @@ function void UpdateLevelScrolling.LRZ1()
 			u32[0xffff8a38] = 0xffffffff
 			u32[0xffff8a3c] = 0xffffffff
 		}
+	}
+
+	if (Mods.isModActive("Stone 3 A.I.R.") && level.vertical_wrap == 0x0710 && getScreenHeightExtend())
+	{
+		level.vertical_wrap -= getScreenHeightExtend()
+		move_area.bottom.target = level.vertical_wrap
 	}
 }
 

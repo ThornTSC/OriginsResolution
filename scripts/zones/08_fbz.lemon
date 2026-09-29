@@ -71,7 +71,7 @@ function void UpdateLevelScrolling.FBZ1()
 {
 	base.UpdateLevelScrolling.FBZ1()
 
-	if (level.trigger0f < 3)
+	if (level.trigger0f < 3 && !Mods.isModActive("Pink Burner") && !Mods.isModActive("Sawnic") && !Mods.isModActive("Stone 3 A.I.R."))
 	{
 		Renderer.drawCustomSprite("fbz_prison", 0x2f00, 0x05e0, 0, SPRITE_FLAG_WORLDSPACE | SPRITE_FLAG_PRIO, 0xa001)
 		Renderer.addSpriteMaskWorld(0x2ee0, 0x05b0, 0x40, 0x50, 0xa000, 1)
@@ -98,7 +98,7 @@ function void fn06eea8()
 function void fn06ef0e()
 {
 	base.fn06ef0e()
-	if (getScreenWidth() <= 400)
+	if (getScreenWidth() <= 400 || Mods.isModActive("Pink Burner") || Mods.isModActive("Sawnic"))
 		return
 
 	objA0.base_state = 0x04
